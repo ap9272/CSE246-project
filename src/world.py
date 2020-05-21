@@ -1,4 +1,5 @@
 import humans
+import random as rd
 import numpy as np
 
 class World():
@@ -47,17 +48,17 @@ def build_world(args):
 			Communities.append(Community(People[i*comm_density : (i+1)*comm_density], area))
 		return World(Communities, travel)
 	elif comm_types == 'real':
-		# TODO
+		# A simple way to generate communities
 		people_copy = np.array(People)  # create a copy of people list
-
 		for i in range(comm_count - 1):
 			min_people = int(0.25 * people_copy.shape[0])  # min number of people in a community
 			max_people = int(0.75 * people_copy.shape[0])  # max number of people to put in a community
-			num_people = np.random.randin(min_people, max_people)
+			num_people = np.random.randint(min_people, max_people)
 			people_indices = np.random.randint(0, people_copy.shape[0], num_people)
 			sub_comm = [people_copy[i] for i in people_indices]
 			Communities.append(Community(sub_comm, area))
 			people_copy = np.delete(people_copy, people_indices)
 
 		Communities.append(Community(people_copy.tolist(), area))  # Fill in the last community
+		rd.shuffle(Communities)
 		return World(Communities, travel)
