@@ -1,4 +1,5 @@
 import humans
+import numpy as np
 
 class World():
 	def __init__(self, communities, travel):
@@ -47,5 +48,16 @@ def build_world(args):
 		return World(Communities, travel)
 	elif comm_types == 'real':
 		# TODO
-		print("Under construction")
-		return World()
+		people_copy = np.array(People)  # create a copy of people list
+
+		for i in range(comm_count - 1):
+			min_people = int(0.25 * people_copy.shape[0])  # min number of people in a community
+			max_people = int(0.75 * people_copy.shape[0])  # max number of people to put in a community
+			num_people = np.random.randin(min_people, max_people)
+			people_indices = np.random.randint(0, people_copy.shape[0], num_people)
+			sub_comm = [people_copy[i] for i in people_indices]
+			Communities.append(Community(sub_comm, area))
+			people_copy = np.delete(people_copy, people_indices)
+
+		Communities.append(Community(people_copy.tolist(), area))  # Fill in the last community
+		return World(Communities, travel)
