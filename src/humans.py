@@ -11,10 +11,16 @@ class Human():
 		self.Age = age
 		self.Gender = gender
 		self.location = np.array([0.0,0.0])
+		self.state = 'S' #SIR model, susceptible, infected, recovered
+		self.infected_time = -1 #time steps since infected
+		self.incubation_time = -1
 
 	def __str__(self):
 		return "(" + str(self.Age) + ", " + self.Gender + ") "
 	# TODO: add other functions of humans like movement
+
+	def set_location(self, coords):
+		self.location = coords
 
 	def distance(self, coord):
 		return np.sqrt((self.location[0] - coord[0])**2 + (self.location[1] - coord[1])**2)
