@@ -11,19 +11,22 @@ class Infection():
 		self.sym_prob = sym_prob
 		self.inf_time = inf_time
 
+	# Initialize the infection with world (could add lag if required)
 	def start_infection(self):
 		self.world.start(self.inf_init, self.comm_seed)
 
+	# Proceed with a daya
 	def one_day(self):
 		self.world.update_world(self.inf_rad, self.inf_prob, self.inf_time)
 		stats = self.world.stats()
 
 		return stats
 
+	# Get the graph for humans
 	def graph(self):
 		self.world.print_graph()
 
-
+# Add an infection to the world
 def infect_world(args, world):
 	
 	inf_init = args.infection_initial
