@@ -10,10 +10,28 @@ class Human():
 	def __init__(self, age, gender):
 		self.Age = age
 		self.Gender = gender
+		self.location = np.array([0.0,0.0])
+		self.state = 'S' #SIR model, susceptible, infected, recovered
+		self.infected_time = -1 #time steps since infected
+		self.incubation_time = -1
 
 	def __str__(self):
 		return "(" + str(self.Age) + ", " + self.Gender + ") "
 	# TODO: add other functions of humans like movement
+
+	def set_location(self, coords):
+		self.location = coords
+
+	def distance(self, coord):
+		return np.sqrt((self.location[0] - coord[0])**2 + (self.location[1] - coord[1])**2)
+
+	def move(self, direction, bounding_coords): # check for Box containment
+		new_loc = self.location + direction
+		if (new_loc[0] < bounding_coords[0][0] or new_loc[0] > bounding_coords[1][0]):
+			direction[0] = -direction[0]
+		if (new_loc[1] < bounding_coords[0][1] or new_loc[1] > bounding_coords[1][1]):
+			direction[1] = -direction[1]
+		self.location = self.location + direction
 
 
 
