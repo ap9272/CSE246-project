@@ -1,7 +1,16 @@
 import humans
 import random as rd
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib import animation
 
+# To plot the humans
+# TODO: expand for multiple communities
+fig = plt.figure(figsize=(5,5))
+ax = plt.axes()
+ims=[]
+
+# class for the whole world
 class World():
 	def __init__(self, communities, travel):
 		self.communities = communities
@@ -15,23 +24,31 @@ class World():
 		out += "Travel Probability : " + str(self.travel)
 		return out
 
+	# Goes through one day for each community
 	def update_world(self, inf_dist, inf_prob, inf_time):
 		for c in self.communities:
 			c.one_day(inf_dist, inf_prob, inf_time)
 
+	# Start the world, intialize human locations and infect some humans
 	def start(self, inf_init, comm_seed):
 		comm_idx = np.random.randint(low=0, high=len(self.communities), size=comm_seed)
 		for c in comm_idx:
 			self.communities[c].initialize_human_locations()
 			self.communities[c].infect(int(inf_init/len(comm_idx)))
 
+	# Returns how many humans in which state
 	def stats(self):
 		SIRs = []
 		for c in self.communities:
 			SIRs.append(c.stats())
 		return SIRs
 
+	# Outputs the humans graph
+	def print_graph(self):
+		for c in self.communities:
+			c.print_graph()
 
+# class for one community
 class Community():
 	def __init__(self, humans, length, coords, steps_per_day):
 		self.humans_S = humans			# susceptible people
@@ -63,16 +80,18 @@ class Community():
 		out += "Community Box Length : " + str(self.length)
 		return out
 
+	# randomly assign human locations in a box
 	def initialize_human_locations(self):
 		random_coords = np.random.rand(len(self.humans_S), 2)*self.length + self.coords[0][0]
 		for i in range(len(self.humans_S)):
 			self.humans_S[i].set_location(random_coords[i])
 
-
+	# return the number of humans in each state
 	def stats(self):
 		return [len(self.humans_S), len(self.humans_I), len(self.humans_R), len(self.humans_D)]
 
 
+	# start the infection in the community
 	def infect(self, inf_init):
 		h_idx = np.random.randint(low=0, high=len(self.humans_S), size=inf_init)
 
@@ -81,20 +100,57 @@ class Community():
 			self.humans_S[i].infected_time = 0
 			self.humans_I.append(self.humans_S.pop(i))
 
+
 	def one_day(self, inf_dist, inf_prob, inf_time, incub_time, sympt_prob):
 
+
+		# humans take multiple steps per day
 		for _ in range(self.steps_per_day):
 			self.move_humans()
 			self.infection_spread(inf_dist, inf_prob)
+      self.graph()
+      
+		# one day passes for humans (update status)
 		self.humans_progress(inf_time, incub_time, sympt_prob)
 
+	# for graphing of humans
+	def graph(self):
+		coords = []
+		status = []
 
+		for h in self.humans_S:
+			coords.append(h.location)
+			status.append(0)
+
+		for h in self.humans_I:
+			coords.append(h.location)
+			status.append(1)
+
+		for h in self.humans_R:
+			coords.append(h.location)
+			status.append(2)
+
+		coords = np.array(coords)
+		status = np.array(status)
+
+		im=[ax.scatter(coords[:,0] ,coords[:,1] ,c=status)]
+		ims.append(im)	
+
+	# output the graph (function not required, can be done in world class)
+	def print_graph(self):
+		ani = animation.ArtistAnimation(fig, ims, interval=20, blit=True,repeat_delay=1000)
+		plt.show()
+
+	# move humans randomly (don't move 'R' because they don't matter for infection in current model)
 	def move_humans(self):
 		for h in self.humans_S:
-			h.move(np.random.uniform(size=2), self.coords)
+			h.move(np.random.normal(size=2), self.coords)
 		for h in self.humans_I:
-			h.move(np.random.uniform(size=2), self.coords)
+			h.move(np.random.normal(size=2), self.coords)
 
+	# spreading infection on each step
+	# assumption: if there are multiple people in the same radius and one of them is infected
+	# the other people can only be infected by that one person in that time step
 	def infection_spread(self, inf_dist, inf_prob):
 		indexes = []
 		for i in range(len(self.humans_S)):
@@ -108,8 +164,8 @@ class Community():
 			self.humans_S[i].infected_time = 0
 			self.humans_I.append(self.humans_S.pop(i))
 
-
 	def humans_progress(self, inf_time, incub_time, sympt_prob):
+
 		recovered_indexes = []
 		died_indexes = []
 		# Advance the infection for each human
@@ -131,7 +187,7 @@ class Community():
 			self.humans_I[i].infected_time = -1
 			self.humans_R.append(self.humans_I.pop(i))
 
-
+      
 	def decide_symptoms(self, human_index, sympt_prob):
 		if np.random.uniform(0, 1) < sympt_prob: # patient is symptomatic
 			self.humans_I[human_index].state = 'SYM'
@@ -186,8 +242,10 @@ class Community():
 		return -1
 
 
+# Creates the world
 def build_world(args):
 
+	# Get all the humans
 	People = humans.create_humans(args)
 	Communities = []
 
@@ -197,6 +255,7 @@ def build_world(args):
 	travel = args.community_travel
 	spd = args.steps_per_day
 
+	# All communities have equal number of people
 	if comm_types == 'uniform':
 		comm_density = int(len(People)/comm_count)
 
