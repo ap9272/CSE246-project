@@ -103,7 +103,7 @@ class Community():
 			self.infection_spread(inf_dist, inf_prob)
 			self.graph()
 		# one day passes for humans (update status)
-		self.humans_day(inf_time)
+		self.humans_recover_or_die(inf_time)
 
 	# for graphing of humans
 	def graph(self):
@@ -156,20 +156,51 @@ class Community():
 			self.humans_S[i].infected_time = 0
 			self.humans_I.append(self.humans_S.pop(i))
 
-	# Recover humans or increase their infection days
-	def humans_day(self, inf_time):
-		indexes = []
+	def humans_recover_or_die(self, inf_time):
+		# Reference: https://www1.nyc.gov/assets/doh/downloads/pdf/imm/covid-19-daily-data-summary-deaths-05132020-1.pdf
+		death_prob_by_age = {17: 0.0006, 44: 0.39, 64: 0.224, 74: 0.249, 120: 0.487}  # Death probabilties by age
+        # for example 18-44 years old is 0.39
+
+		recovered_indexes = []
 		for i in range(len(self.humans_I)):
 			self.humans_I[i].infected_time += 1
-			if (self.humans_I[i].infected_time == inf_time):
-				indexes.append(i)
+			if (self.humans_I[i].infected_time) == inf_time:# need to decide recovery or death by age
 
-		for i in indexes:
+				if(self.humans_I[i].Age <= 17):
+					if(np.random.uniform(0, 1) < death_prob_by_age[17]):
+						self.humans_I.pop(i)		# infected person dies
+					else:
+						recovered_indexes.append(i) # infected person recovers
+
+				elif(self.humans_I[i].Age <= 44):
+					if (np.random.uniform(0, 1) < death_prob_by_age[44]):
+						self.humans_I.pop(i)
+					else:
+						recovered_indexes.append(i)
+
+				elif(self.humans_I[i].Age <= 64):
+					if (np.random.uniform(0, 1) < death_prob_by_age[64]):
+						self.humans_I.pop(i)
+					else:
+						recovered_indexes.append(i)
+
+				elif(self.humans_I[i].Age <= 74):
+					if (np.random.uniform(0, 1) < death_prob_by_age[74]):
+						self.humans_I.pop(i)
+					else:
+						recovered_indexes.append(i)
+
+				else:
+					if (np.random.uniform(0, 1) < death_prob_by_age[120]):
+						self.humans_I.pop(i)
+					else:
+						recovered_indexes.append(i)
+
+		for i in recovered_indexes:
 			self.humans_I[i].state = 'R'
 			self.humans_I[i].infected_time = -1
 			self.humans_R.append(self.humans_I.pop(i))
 
-		
 # Creates the world
 def build_world(args):
 
@@ -195,14 +226,19 @@ def build_world(args):
 		# A simple way to generate communities
 		people_copy = np.array(People)  # create a copy of people list
 		for i in range(comm_count - 1):
+			coords = np.array([[i * length, i * length], [(i + 1) * length, (i + 1) * length]])
+
 			min_people = int(0.25 * people_copy.shape[0])  # min number of people in a community
 			max_people = int(0.75 * people_copy.shape[0])  # max number of people to put in a community
 			num_people = np.random.randint(min_people, max_people)
 			people_indices = np.random.randint(0, people_copy.shape[0], num_people)
 			sub_comm = [people_copy[i] for i in people_indices]
-			Communities.append(Community(sub_comm, area))
+			Communities.append(Community(sub_comm, length, coords, spd))
 			people_copy = np.delete(people_copy, people_indices)
 
-		Communities.append(Community(people_copy.tolist(), area))  # Fill in the last community
+		# Fill in the last community
+		coords = np.array([[(comm_count-1)*length, (comm_count-1)*length], [comm_count*length, comm_count*length]])
+		Communities.append(Community(people_copy.tolist(), length, coords, spd))
+
 		rd.shuffle(Communities)
 		return World(Communities, travel)
