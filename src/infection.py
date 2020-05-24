@@ -20,8 +20,9 @@ class Infection():
 
 		return stats
 
+	def graph(self):
+		self.world.print_graph()
 
-# parser.add_argument("--infection_comm_seed", "-comseed", type=int, default=1)
 
 def infect_world(args, world):
 	
@@ -42,3 +43,5 @@ def infect_world(args, world):
 
 	for _ in range(sim_time):
 		print(infection.one_day())
+
+	infection.graph()

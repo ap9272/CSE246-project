@@ -1,6 +1,14 @@
 import humans
 import random as rd
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib import animation
+
+
+fig = plt.figure(figsize=(5,5))
+ax = plt.axes()
+
+ims=[]
 
 class World():
 	def __init__(self, communities, travel):
@@ -30,6 +38,10 @@ class World():
 		for c in self.communities:
 			SIRs.append(c.stats())
 		return SIRs
+
+	def print_graph(self):
+		for c in self.communities:
+			c.print_graph()
 
 
 class Community():
@@ -80,14 +92,41 @@ class Community():
 		for _ in range(self.steps_per_day):
 			self.move_humans()
 			self.infection_spread(inf_dist, inf_prob)
+			self.graph()
 		self.humans_recovered(inf_time)
+
+	def graph(self):
+		coords = []
+		status = []
+
+		for h in self.humans_S:
+			coords.append(h.location)
+			status.append(0)
+
+		for h in self.humans_I:
+			coords.append(h.location)
+			status.append(1)
+
+		for h in self.humans_R:
+			coords.append(h.location)
+			status.append(2)
+
+		coords = np.array(coords)
+		status = np.array(status)
+
+		im=[ax.scatter(coords[:,0] ,coords[:,1] ,c=status)]
+		ims.append(im)	
+
+	def print_graph(self):
+		ani = animation.ArtistAnimation(fig, ims, interval=20, blit=True,repeat_delay=1000)
+		plt.show()
 
 
 	def move_humans(self):
 		for h in self.humans_S:
-			h.move(np.random.uniform(size=2), self.coords)
+			h.move(np.random.normal(size=2), self.coords)
 		for h in self.humans_I:
-			h.move(np.random.uniform(size=2), self.coords)
+			h.move(np.random.normal(size=2), self.coords)
 
 	def infection_spread(self, inf_dist, inf_prob):
 		indexes = []
