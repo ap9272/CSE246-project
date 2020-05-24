@@ -37,6 +37,7 @@ class Community():
 		self.humans_S = humans
 		self.humans_I = []
 		self.humans_R = []
+		self.humans_D = []
 		self.length = length
 		self.coords = coords
 		self.steps_per_day = steps_per_day
@@ -54,6 +55,10 @@ class Community():
 		for h in self.humans_R:
 			out += str(h)
 		out += "]\n"
+		out += "Died Humans : ["
+		for h in self.humans_D:
+			out += str(h)
+		out += "]\n"
 		out += "Community Box Length : " + str(self.length)
 		return out
 
@@ -64,7 +69,7 @@ class Community():
 
 
 	def stats(self):
-		return [len(self.humans_S), len(self.humans_I), len(self.humans_R)]
+		return [len(self.humans_S), len(self.humans_I), len(self.humans_R), len(self.humans_D)]
 
 
 	def infect(self, inf_init):
@@ -109,37 +114,38 @@ class Community():
         # for example 18-44 years old is 0.39
 
 		recovered_indexes = []
+		died_indexes = []
 		for i in range(len(self.humans_I)):
 			self.humans_I[i].infected_time += 1
 			if (self.humans_I[i].infected_time) == inf_time:# need to decide recovery or death by age
 
 				if(self.humans_I[i].Age <= 17):
 					if(np.random.uniform(0, 1) < death_prob_by_age[17]):
-						self.humans_I.pop(i)		# infected person dies
+						died_indexes.append(i)		# infected person dies
 					else:
 						recovered_indexes.append(i) # infected person recovers
 
 				elif(self.humans_I[i].Age <= 44):
 					if (np.random.uniform(0, 1) < death_prob_by_age[44]):
-						self.humans_I.pop(i)
+						died_indexes.append(i)
 					else:
 						recovered_indexes.append(i)
 
 				elif(self.humans_I[i].Age <= 64):
 					if (np.random.uniform(0, 1) < death_prob_by_age[64]):
-						self.humans_I.pop(i)
+						died_indexes.append(i)
 					else:
 						recovered_indexes.append(i)
 
 				elif(self.humans_I[i].Age <= 74):
 					if (np.random.uniform(0, 1) < death_prob_by_age[74]):
-						self.humans_I.pop(i)
+						died_indexes.append(i)
 					else:
 						recovered_indexes.append(i)
 
 				else:
 					if (np.random.uniform(0, 1) < death_prob_by_age[120]):
-						self.humans_I.pop(i)
+						died_indexes.append(i)
 					else:
 						recovered_indexes.append(i)
 
@@ -147,6 +153,10 @@ class Community():
 			self.humans_I[i].state = 'R'
 			self.humans_I[i].infected_time = -1
 			self.humans_R.append(self.humans_I.pop(i))
+
+		for i in died_indexes:
+			self.humans_I[i].state = 'D'
+			self.humans_D.append(self.humans_I.pop(i))
 
 
 def build_world(args):

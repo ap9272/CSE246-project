@@ -11,7 +11,7 @@ class Human():
 		self.Age = age
 		self.Gender = gender
 		self.location = np.array([0.0,0.0])
-		self.state = 'S' #SIR model, susceptible, infected, recovered
+		self.state = 'S' #SIRD model, susceptible, infected, recovered, death
 		self.infected_time = -1 #time steps since infected
 		self.incubation_time = -1
 
