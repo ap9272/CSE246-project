@@ -52,9 +52,9 @@ class World():
 class Community():
 	def __init__(self, humans, length, coords, steps_per_day):
 		self.humans_S = humans			# susceptible people
-		self.humans_I = []				# infected people - can have 3 states: I, SYM, or ASYM
-		self.humans_R = []				# recovered people
-		self.humans_D = []				# dead patients
+		self.humans_I = []			# infected people - can have 3 states: I, SYM, or ASYM
+		self.humans_R = []			# recovered people
+		self.humans_D = []			# dead patients
 		self.length = length			# side length of the square representing community
 		self.coords = coords			# coordinates of the square(community)
 		self.steps_per_day = steps_per_day
@@ -108,8 +108,7 @@ class Community():
 		for _ in range(self.steps_per_day):
 			self.move_humans()
 			self.infection_spread(inf_dist, inf_prob)
-      self.graph()
-      
+      			self.graph()
 		# one day passes for humans (update status)
 		self.humans_progress(inf_time, incub_time, sympt_prob)
 
