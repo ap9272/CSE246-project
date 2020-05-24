@@ -42,6 +42,7 @@ def infect_world(args, world):
 
 	infection = Infection(world, inf_init, comm_seed, inf_rad, inf_prob, inf_incub, sym_prob, inf_time)
 
+	print(infection.world.stats())
 	infection.start_infection()
 
 	for _ in range(sim_time):
