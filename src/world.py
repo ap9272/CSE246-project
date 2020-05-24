@@ -100,7 +100,7 @@ class Community():
 			self.humans_S[i].infected_time = 0
 			self.humans_I.append(self.humans_S.pop(i))
 
-
+	# goes through one day of the community
 	def one_day(self, inf_dist, inf_prob, inf_time, incub_time, sympt_prob):
 
 
