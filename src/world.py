@@ -37,6 +37,7 @@ class Community():
 		self.humans_S = humans			# susceptible people
 		self.humans_I = []				# infected people - can have 3 states: I, SYM, or ASYM
 		self.humans_R = []				# recovered people
+		self.humans_D = []				# dead patients
 		self.length = length			# side length of the square representing community
 		self.coords = coords			# coordinates of the square(community)
 		self.steps_per_day = steps_per_day
@@ -55,6 +56,10 @@ class Community():
 		for h in self.humans_R:
 			out += str(h)
 		out += "]\n"
+		out += "Died Humans : ["
+		for h in self.humans_D:
+			out += str(h)
+		out += "]\n"
 		out += "Community Box Length : " + str(self.length)
 		return out
 
@@ -65,7 +70,7 @@ class Community():
 
 
 	def stats(self):
-		return [len(self.humans_S), len(self.humans_I), len(self.humans_R)]
+		return [len(self.humans_S), len(self.humans_I), len(self.humans_R), len(self.humans_D)]
 
 
 	def infect(self, inf_init):
@@ -106,7 +111,7 @@ class Community():
 
 	def humans_progress(self, inf_time, incub_time, sympt_prob):
 		recovered_indexes = []
-
+		died_indexes = []
 		# Advance the infection for each human
 		for i in range(len(self.humans_I)):
 			self.humans_I[i].infected_time += 1
@@ -140,35 +145,40 @@ class Community():
 		# for example 18-44 years old is 0.39
 		if (self.humans_I[human_index].Age <= 17):
 			if (np.random.uniform(0, 1) < death_prob_by_age[17]):
-				self.humans_I.pop(human_index)  # infected person dies
+				self.humans_I[human_index].state = 'D'  # infected person dies
+				self.humans_D.append(self.humans_I.pop(human_index))
 				self.death_toll += 1
 			else:
 				return human_index  # infected person recovers
 
 		elif (self.humans_I[human_index].Age <= 44):
 			if (np.random.uniform(0, 1) < death_prob_by_age[44]):
-				self.humans_I.pop(human_index)
+				self.humans_I[human_index].state = 'D'  # infected person dies
+				self.humans_D.append(self.humans_I.pop(human_index))
 				self.death_toll += 1
 			else:
 				return human_index
 
 		elif (self.humans_I[human_index].Age <= 64):
 			if (np.random.uniform(0, 1) < death_prob_by_age[64]):
-				self.humans_I.pop(human_index)
+				self.humans_I[human_index].state = 'D'  # infected person dies
+				self.humans_D.append(self.humans_I.pop(human_index))
 				self.death_toll += 1
 			else:
 				return human_index
 
 		elif (self.humans_I[human_index].Age <= 74):
 			if (np.random.uniform(0, 1) < death_prob_by_age[74]):
-				self.humans_I.pop(human_index)
+				self.humans_I[human_index].state = 'D'  # infected person dies
+				self.humans_D.append(self.humans_I.pop(human_index))
 				self.death_toll += 1
 			else:
 				return human_index
 
 		else:
 			if (np.random.uniform(0, 1) < death_prob_by_age[120]):
-				self.humans_I.pop(human_index)
+				self.humans_I[human_index].state = 'D'  # infected person dies
+				self.humans_D.append(self.humans_I.pop(human_index))
 				self.death_toll += 1
 			else:
 				return human_index
