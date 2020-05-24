@@ -108,7 +108,7 @@ class Community():
 		for _ in range(self.steps_per_day):
 			self.move_humans()
 			self.infection_spread(inf_dist, inf_prob)
-      			self.graph()
+			self.graph()
 		# one day passes for humans (update status)
 		self.humans_progress(inf_time, incub_time, sympt_prob)
 
