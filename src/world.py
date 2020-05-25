@@ -29,9 +29,20 @@ class World():
 		for c in self.communities:
 			c.one_day(inf_dist, inf_prob, inf_time, incub_time, sympt_prob)
 
+			quarantine_indices = []
+			for index in range(len(c.humans_I)):
+				if c.humans_I[index].state == 'SYM':
+					quarantine_indices.append(index)
+
+			for i in quarantine_indices:
+				self.communities[0].humans_I.append(c.humans_I.pop(i))  #Adding symptomatic patients to quarantine community
+
+
 	# Start the world, intialize human locations and infect some humans
 	def start(self, inf_init, comm_seed):
-		comm_idx = np.random.randint(low=0, high=len(self.communities), size=comm_seed)
+
+		# Excluding the quarantine community to start the infection
+		comm_idx = np.random.randint(low=1, high=len(self.communities), size=comm_seed)
 		for c in comm_idx:
 			self.communities[c].initialize_human_locations()
 			self.communities[c].infect(int(inf_init/len(comm_idx)))
@@ -93,16 +104,18 @@ class Community():
 
 	# start the infection in the community
 	def infect(self, inf_init):
-		h_idx = np.random.randint(low=0, high=len(self.humans_S), size=inf_init)
+		
+		# Spreading infection in communities except quarantine community
+		if(len(self.humans_S) > 0):
+			h_idx = np.random.randint(low=0, high=len(self.humans_S), size=inf_init)
 
-		for i in h_idx:
-			self.humans_S[i].state = 'I'
-			self.humans_S[i].infected_time = 0
-			self.humans_I.append(self.humans_S.pop(i))
+			for i in h_idx:
+				self.humans_S[i].state = 'I'
+				self.humans_S[i].infected_time = 0
+				self.humans_I.append(self.humans_S.pop(i))
 
 	# goes through one day of the community
 	def one_day(self, inf_dist, inf_prob, inf_time, incub_time, sympt_prob):
-
 
 		# humans take multiple steps per day
 		for _ in range(self.steps_per_day):
@@ -253,6 +266,10 @@ def build_world(args):
 	length = args.community_box_length
 	travel = args.community_travel
 	spd = args.steps_per_day
+
+
+	# Adding a quarantine community
+	Communities.append(Community(list(), 10, [[0,0],[0,0]], 0))
 
 	# All communities have equal number of people
 	if comm_types == 'uniform':
