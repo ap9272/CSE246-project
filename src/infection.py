@@ -17,7 +17,7 @@ class Infection():
 
 	# Proceed with a daya
 	def one_day(self):
-		self.world.update_world(self.inf_rad, self.inf_prob, self.inf_time)
+		self.world.update_world(self.inf_rad, self.inf_prob, self.inf_time, self.inf_incub, self.sym_prob)
 		stats = self.world.stats()
 
 		return stats

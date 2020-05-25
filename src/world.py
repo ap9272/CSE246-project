@@ -25,9 +25,9 @@ class World():
 		return out
 
 	# Goes through one day for each community
-	def update_world(self, inf_dist, inf_prob, inf_time):
+	def update_world(self, inf_dist, inf_prob, inf_time, incub_time, sympt_prob):
 		for c in self.communities:
-			c.one_day(inf_dist, inf_prob, inf_time)
+			c.one_day(inf_dist, inf_prob, inf_time, incub_time, sympt_prob)
 
 	# Start the world, intialize human locations and infect some humans
 	def start(self, inf_init, comm_seed):
