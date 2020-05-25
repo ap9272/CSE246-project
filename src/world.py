@@ -184,7 +184,6 @@ class Community():
 				if state == 'D':
 					died_indexes.append(i)
 
-
 		for i in recovered_indexes:
 			self.humans_I[i].state = 'R'
 			self.humans_I[i].infected_time = -1
@@ -201,6 +200,7 @@ class Community():
 			self.humans_I[human_index].state = 'SYM'
 		else:
 			self.humans_I[human_index].state = 'ASYM'
+
 
 
 	def decide_death(self, human_index):
