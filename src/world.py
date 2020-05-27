@@ -25,13 +25,24 @@ class World():
 		return out
 
 	# Goes through one day for each community
-	def update_world(self, inf_dist, inf_prob, inf_time):
+	def update_world(self, inf_dist, inf_prob, inf_time, incub_time, sympt_prob):
 		for c in self.communities:
-			c.one_day(inf_dist, inf_prob, inf_time)
+			c.one_day(inf_dist, inf_prob, inf_time, incub_time, sympt_prob)
+
+			quarantine_indices = []
+			for index in range(len(c.humans_I)):
+				if c.humans_I[index].state == 'SYM':
+					quarantine_indices.append(index)
+
+			for i in quarantine_indices:
+				self.communities[0].humans_I.append(c.humans_I.pop(i))  #Adding symptomatic patients to quarantine community
+
 
 	# Start the world, intialize human locations and infect some humans
 	def start(self, inf_init, comm_seed):
-		comm_idx = np.random.randint(low=0, high=len(self.communities), size=comm_seed)
+
+		# Excluding the quarantine community to start the infection
+		comm_idx = np.random.randint(low=1, high=len(self.communities), size=comm_seed)
 		for c in comm_idx:
 			self.communities[c].initialize_human_locations()
 			self.communities[c].infect(int(inf_init/len(comm_idx)))
@@ -93,16 +104,18 @@ class Community():
 
 	# start the infection in the community
 	def infect(self, inf_init):
-		h_idx = np.random.randint(low=0, high=len(self.humans_S), size=inf_init)
+		
+		# Spreading infection in communities except quarantine community
+		if(len(self.humans_S) > 0):
+			h_idx = np.random.randint(low=0, high=len(self.humans_S), size=inf_init)
 
-		for i in h_idx:
-			self.humans_S[i].state = 'I'
-			self.humans_S[i].infected_time = 0
-			self.humans_I.append(self.humans_S.pop(i))
+			for i in h_idx:
+				self.humans_S[i].state = 'I'
+				self.humans_S[i].infected_time = 0
+				self.humans_I.append(self.humans_S.pop(i))
 
 	# goes through one day of the community
 	def one_day(self, inf_dist, inf_prob, inf_time, incub_time, sympt_prob):
-
 
 		# humans take multiple steps per day
 		for _ in range(self.steps_per_day):
@@ -177,14 +190,22 @@ class Community():
 
 			# Decide death or recovery of a symptomatic or asymptomatic infected person
 			if (self.humans_I[i].infected_time == inf_time):
-				recover_indx = self.decide_death(i)
-				if recover_indx != -1:	# if patient survives death
-					recovered_indexes.append(recover_indx)
+				state = self.decide_death(i)
+				
+				if state == 'R':	# if patient survives death
+					recovered_indexes.append(i)
+				if state == 'D':
+					died_indexes.append(i)
 
 		for i in recovered_indexes:
 			self.humans_I[i].state = 'R'
 			self.humans_I[i].infected_time = -1
 			self.humans_R.append(self.humans_I.pop(i))
+
+		for i in died_indexes:
+			self.humans_I[i].state = 'D'
+			self.humans_D.append(self.humans_I.pop(i))
+			self.death_toll += 1
 
       
 	def decide_symptoms(self, human_index, sympt_prob):
@@ -194,51 +215,43 @@ class Community():
 			self.humans_I[human_index].state = 'ASYM'
 
 
+
 	def decide_death(self, human_index):
 		# Reference: https://www1.nyc.gov/assets/doh/downloads/pdf/imm/covid-19-daily-data-summary-deaths-05132020-1.pdf
 		death_prob_by_age = {17: 0.0006, 44: 0.39, 64: 0.224, 74: 0.249, 120: 0.487}  # Death probabilties by age
 		# for example 18-44 years old is 0.39
+		
 		if (self.humans_I[human_index].Age <= 17):
 			if (np.random.uniform(0, 1) < death_prob_by_age[17]):
-				self.humans_I[human_index].state = 'D'  # infected person dies
-				self.humans_D.append(self.humans_I.pop(human_index))
-				self.death_toll += 1
+				decision_state = 'D' # infected person dies
 			else:
-				return human_index  # infected person recovers
+				decision_state = 'R'  # infected person recovers
 
 		elif (self.humans_I[human_index].Age <= 44):
 			if (np.random.uniform(0, 1) < death_prob_by_age[44]):
-				self.humans_I[human_index].state = 'D'  # infected person dies
-				self.humans_D.append(self.humans_I.pop(human_index))
-				self.death_toll += 1
+				decision_state = 'D' # infected person dies
 			else:
-				return human_index
+				decision_state = 'R'  # infected person recovers
 
 		elif (self.humans_I[human_index].Age <= 64):
 			if (np.random.uniform(0, 1) < death_prob_by_age[64]):
-				self.humans_I[human_index].state = 'D'  # infected person dies
-				self.humans_D.append(self.humans_I.pop(human_index))
-				self.death_toll += 1
+				decision_state = 'D' # infected person dies
 			else:
-				return human_index
+				decision_state = 'R'  # infected person recovers
 
 		elif (self.humans_I[human_index].Age <= 74):
 			if (np.random.uniform(0, 1) < death_prob_by_age[74]):
-				self.humans_I[human_index].state = 'D'  # infected person dies
-				self.humans_D.append(self.humans_I.pop(human_index))
-				self.death_toll += 1
+				decision_state = 'D' # infected person dies
 			else:
-				return human_index
+				decision_state = 'R'  # infected person recovers
 
 		else:
 			if (np.random.uniform(0, 1) < death_prob_by_age[120]):
-				self.humans_I[human_index].state = 'D'  # infected person dies
-				self.humans_D.append(self.humans_I.pop(human_index))
-				self.death_toll += 1
+				decision_state = 'D' # infected person dies
 			else:
-				return human_index
+				decision_state = 'R'  # infected person recovers
 
-		return -1
+		return decision_state
 
 
 # Creates the world
@@ -253,6 +266,10 @@ def build_world(args):
 	length = args.community_box_length
 	travel = args.community_travel
 	spd = args.steps_per_day
+
+
+	# Adding a quarantine community
+	Communities.append(Community(list(), 10, [[0,0],[0,0]], 0))
 
 	# All communities have equal number of people
 	if comm_types == 'uniform':
