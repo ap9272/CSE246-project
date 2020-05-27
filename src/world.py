@@ -53,8 +53,24 @@ class World():
 				self.quarantine.humans_I.append(c.humans_I.pop(i))  #Adding symptomatic patients to quarantine community
 				self.quarantine.set_human('I', len(self.quarantine.humans_I)-1)
 
-			# inter community travel
-			self.community_travel()
+		# inter community travel
+		self.community_travel()
+
+		# Plot the quarantine community
+		# Only move them once per day
+		self.quarantine.move_humans()
+		co, s = self.quarantine.positions()
+		if (co != []):
+			co = np.expand_dims(co, axis=0)
+			s = np.expand_dims(s, axis=0)
+			q_co = np.copy(co)
+			q_s = np.copy(s)
+			for i in range(1, coords.shape[0]):
+				q_co = np.append(q_co, co, axis = 0)
+				q_s = np.append(q_s, s, axis = 0)
+
+			coords = np.append(coords, q_co, axis=1)
+			status = np.append(status, q_s, axis=1)
 
 		for i in range(coords.shape[0]):
 			im=[ax.scatter(coords[i,:,0] ,coords[i,:,1] ,c=status[i,:], marker='.')]
@@ -82,8 +98,10 @@ class World():
 	# Outputs the humans graph
 	def print_graph(self):
 		for c in self.communities:
-			rect = patches.Rectangle(c.coords[0],c.length,c.length,linewidth=1,edgecolor='r',facecolor='none')
+			rect = patches.Rectangle(c.coords[0],c.length,c.length,linewidth=2,edgecolor='black',facecolor='none')
 			ax.add_patch(rect)
+		rect = patches.Rectangle(self.quarantine.coords[0],self.quarantine.length,self.quarantine.length,linewidth=2,edgecolor='red',facecolor='none')
+		ax.add_patch(rect)
 
 		ani = animation.ArtistAnimation(fig, ims, interval=20, blit=True,repeat_delay=1000)
 		plt.show()
@@ -239,7 +257,9 @@ class Community():
 					if (np.random.uniform(0,1) < inf_prob == True):		# decide whether to infect a person or not
 						indexes.append(i)
 
-		for i in sorted(indexes, reverse=True):
+		for i in sorted(list(set(indexes)), reverse=True):
+			if (i >= len(self.humans_S)):
+				print(i, len(self.humans_S), indexes)
 			self.humans_S[i].state = 'I'
 			self.humans_S[i].infected_time = 0
 			self.humans_I.append(self.humans_S.pop(i))
@@ -337,21 +357,42 @@ def build_world(args):
 
 
 	# Adding a quarantine community
-	Quarantine = Community(list(), 10, [[-10,-10],[0,0]], 0)
+	Quarantine = Community(list(), 10, [[-15,0],[-5,10]], 0)
+
+	comm_no_length = int((comm_count+1)/2)
+	comm_no_height = int(comm_count/2)
 
 	# All communities have equal number of people
 	if comm_types == 'uniform':
 		comm_density = int(len(People)/comm_count)
 
-		for i in range(int(len(People)/comm_density)):
-			coords = np.array([[i*length, i*length], [(i+1)*length, (i+1)*length]])
+		l = 0
+		b = 0
+		for i in range(comm_count):
+			# 10 added for bounding box buffer
+			coords = np.array([[l*(length+10), b*(length+10)], [(l+1)*length + l*10, (b+1)*length + b*10]])
+			if l == comm_no_length-1:
+				l = 0
+				b = b+1
+			else:
+				l = l+1
+
 			Communities.append(Community(People[i*comm_density : (i+1)*comm_density], length, coords, spd))
 		return World(Communities, travel, Quarantine)
 	elif comm_types == 'real':
 		# A simple way to generate communities
 		people_copy = np.array(People)  # create a copy of people list
+
+		l = 0
+		b = 0
 		for i in range(comm_count - 1):
-			coords = np.array([[i * length, i * length], [(i + 1) * length, (i + 1) * length]])
+			# 10 added for bounding box buffer
+			coords = np.array([[l*(length+10), b*(length+10)], [(l+1)*length + l*10, (b+1)*length + b*10]])
+			if l == comm_no_length-1:
+				l = 0
+				b = b+1
+			else:
+				l = l+1
 
 			min_people = int(0.25 * people_copy.shape[0])  # min number of people in a community
 			max_people = int(0.75 * people_copy.shape[0])  # max number of people to put in a community
@@ -362,7 +403,8 @@ def build_world(args):
 			people_copy = np.delete(people_copy, people_indices)
 
 		# Fill in the last community
-		coords = np.array([[(comm_count-1)*length, (comm_count-1)*length], [comm_count*length, comm_count*length]])
+		# 10 added for bounding box buffer
+		coords = np.array([[l*(length+10), b*(length+10)], [(l+1)*length + l*10, (b+1)*length + b*10]])
 		Communities.append(Community(people_copy.tolist(), length, coords, spd))
 
 		rd.shuffle(Communities)

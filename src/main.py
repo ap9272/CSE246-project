@@ -10,7 +10,7 @@ parser.add_argument("--param_file", "-file", type=str)
 
 parser.add_argument("--sim_time", "-time", type=int, default=20)
 
-parser.add_argument("--total_population", "-pop", type=int, default=300)
+parser.add_argument("--total_population", "-pop", type=int, default=100)
 parser.add_argument("--gender_ratio", "-gr", type=float, default=0.5)
 parser.add_argument("--age_dist", "-age", type=str, default='normal', choices=['normal', 'uniform'])
 parser.add_argument("--max_age", "-max_age", type=int, default=100)
