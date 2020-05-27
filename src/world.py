@@ -3,22 +3,28 @@ import random as rd
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import animation
+import matplotlib.patches as patches
 
 # To plot the humans
 # TODO: expand for multiple communities
-fig = plt.figure(figsize=(5,5))
+fig = plt.figure(figsize=(10,10))
 ax = plt.axes()
 ims=[]
 
 # class for the whole world
 class World():
-	def __init__(self, communities, travel):
+	def __init__(self, communities, travel, quarantine):
 		self.communities = communities
 		self.travel = travel
+		self.quarantine = quarantine
 
 	def __str__(self):
 		out = "Communities : ["
 		for c in self.communities:
+			out += str(c)
+		out += "]\n"
+		out += "Quarantine : ["
+		for c in self.quarantine:
 			out += str(c)
 		out += "]\n"
 		out += "Travel Probability : " + str(self.travel)
@@ -26,26 +32,45 @@ class World():
 
 	# Goes through one day for each community
 	def update_world(self, inf_dist, inf_prob, inf_time, incub_time, sympt_prob):
+		coords = []
+		status = []
 		for c in self.communities:
-			c.one_day(inf_dist, inf_prob, inf_time, incub_time, sympt_prob)
+			co, s = c.one_day(inf_dist, inf_prob, inf_time, incub_time, sympt_prob)
+
+			if coords == []:
+				coords = co
+				status = s
+			else:
+				coords = np.append(coords, co, axis = 1)
+				status = np.append(status, s, axis = 1)
 
 			quarantine_indices = []
 			for index in range(len(c.humans_I)):
 				if c.humans_I[index].state == 'SYM':
 					quarantine_indices.append(index)
 
-			for i in quarantine_indices:
-				self.communities[0].humans_I.append(c.humans_I.pop(i))  #Adding symptomatic patients to quarantine community
+			for i in sorted(quarantine_indices, reverse=True):
+				self.quarantine.humans_I.append(c.humans_I.pop(i))  #Adding symptomatic patients to quarantine community
+				self.quarantine.set_human('I', len(self.quarantine.humans_I)-1)
+
+			# inter community travel
+			self.community_travel()
+
+		for i in range(coords.shape[0]):
+			im=[ax.scatter(coords[i,:,0] ,coords[i,:,1] ,c=status[i,:], marker='.')]
+			ims.append(im)
 
 
 	# Start the world, intialize human locations and infect some humans
 	def start(self, inf_init, comm_seed):
 
 		# Excluding the quarantine community to start the infection
-		comm_idx = np.random.randint(low=1, high=len(self.communities), size=comm_seed)
+		comm_idx = np.random.randint(low=0, high=len(self.communities), size=comm_seed)
 		for c in comm_idx:
-			self.communities[c].initialize_human_locations()
 			self.communities[c].infect(int(inf_init/len(comm_idx)))
+		# Intialize Human locations
+		for c in self.communities:
+			c.initialize_human_locations()
 
 	# Returns how many humans in which state
 	def stats(self):
@@ -57,7 +82,44 @@ class World():
 	# Outputs the humans graph
 	def print_graph(self):
 		for c in self.communities:
-			c.print_graph()
+			rect = patches.Rectangle(c.coords[0],c.length,c.length,linewidth=1,edgecolor='r',facecolor='none')
+			ax.add_patch(rect)
+
+		ani = animation.ArtistAnimation(fig, ims, interval=20, blit=True,repeat_delay=1000)
+		plt.show()
+
+	# Moving a person from one community to the other
+	def community_travel(self):
+		# Will travel happen
+		if np.random.uniform(0, 1) < self.travel == True:
+			# Source, Destination
+			comm_idx = np.random.randint(low=0, high=len(self.communities), size=2)
+			
+			status = ''
+			if len(self.communities[comm_idx[0]].humans_I) == 0 and len(self.communities[comm_idx[0]].humans_S) > 0: # only S persons
+				status = 'S'
+			elif len(self.communities[comm_idx[0]].humans_I) > 0 and len(self.communities[comm_idx[0]].humans_S) == 0: # only I persons
+				status = 'I'
+			elif len(self.communities[comm_idx[0]].humans_I) == 0 and len(self.communities[comm_idx[0]].humans_S) == 0: # no viable person to transfer
+				return
+			else: # Could be either S or I
+				if np.random.uniform(0, 1) < 0.5 == True: # choose between an S or I person
+					status = 'S'
+				else:
+					status = 'I'
+
+			if status == 'S':
+				# choose a person
+				h_idx = np.random.randint(low=0, high=len(self.communities[comm_idx[0]].humans_S))
+				# transfer the person
+				self.communities[comm_idx[1]].humans_S.append(self.communities[comm_idx[0]].humans_S.pop(h_idx))  
+				self.communities[comm_idx[1]].set_human('S', len(self.communities[comm_idx[1]].humans_S)-1)
+			elif status == 'I':
+				# choose a person
+				h_idx = np.random.randint(low=0, high=len(self.communities[comm_idx[0]].humans_I))
+				# transfer the person
+				self.communities[comm_idx[1]].humans_I.append(self.communities[comm_idx[0]].humans_I.pop(h_idx))  
+				self.communities[comm_idx[1]].set_human('I', len(self.communities[comm_idx[1]].humans_I)-1)
 
 # class for one community
 class Community():
@@ -93,7 +155,7 @@ class Community():
 
 	# randomly assign human locations in a box
 	def initialize_human_locations(self):
-		random_coords = np.random.rand(len(self.humans_S), 2)*self.length + self.coords[0][0]
+		random_coords = np.random.rand(len(self.humans_S), 2)*self.length + self.coords[0]
 		for i in range(len(self.humans_S)):
 			self.humans_S[i].set_location(random_coords[i])
 
@@ -116,17 +178,24 @@ class Community():
 
 	# goes through one day of the community
 	def one_day(self, inf_dist, inf_prob, inf_time, incub_time, sympt_prob):
-
+		coords = []
+		status = []
 		# humans take multiple steps per day
 		for _ in range(self.steps_per_day):
 			self.move_humans()
 			self.infection_spread(inf_dist, inf_prob)
-			self.graph()
+			c,s = self.positions()
+			coords.append(c)
+			status.append(s)
 		# one day passes for humans (update status)
 		self.humans_progress(inf_time, incub_time, sympt_prob)
 
+		coords = np.array(coords)
+		status = np.array(status)
+		return coords,status
+
 	# for graphing of humans
-	def graph(self):
+	def positions(self):
 		coords = []
 		status = []
 
@@ -142,16 +211,7 @@ class Community():
 			coords.append(h.location)
 			status.append(2)
 
-		coords = np.array(coords)
-		status = np.array(status)
-
-		im=[ax.scatter(coords[:,0] ,coords[:,1] ,c=status)]
-		ims.append(im)	
-
-	# output the graph (function not required, can be done in world class)
-	def print_graph(self):
-		ani = animation.ArtistAnimation(fig, ims, interval=20, blit=True,repeat_delay=1000)
-		plt.show()
+		return coords, status
 
 	# move humans randomly (don't move 'R' because they don't matter for infection in current model)
 	def move_humans(self):
@@ -159,6 +219,14 @@ class Community():
 			h.move(np.random.normal(size=2), self.coords)
 		for h in self.humans_I:
 			h.move(np.random.normal(size=2), self.coords)
+
+	def set_human(self, list_type, idx):
+		if list_type == 'S':
+			self.humans_S[idx].set_location([c + self.length/2 for c in self.coords[0]])
+		elif list_type == 'I':
+			self.humans_I[idx].set_location([c + self.length/2 for c in self.coords[0]])
+		elif list_type == 'R':
+			self.humans_R[idx].set_location([c + self.length/2 for c in self.coords[0]])
 
 	# spreading infection on each step
 	# assumption: if there are multiple people in the same radius and one of them is infected
@@ -171,7 +239,7 @@ class Community():
 					if (np.random.uniform(0,1) < inf_prob == True):		# decide whether to infect a person or not
 						indexes.append(i)
 
-		for i in indexes:
+		for i in sorted(indexes, reverse=True):
 			self.humans_S[i].state = 'I'
 			self.humans_S[i].infected_time = 0
 			self.humans_I.append(self.humans_S.pop(i))
@@ -197,12 +265,12 @@ class Community():
 				if state == 'D':
 					died_indexes.append(i)
 
-		for i in recovered_indexes:
+		for i in sorted(recovered_indexes, reverse=True):
 			self.humans_I[i].state = 'R'
 			self.humans_I[i].infected_time = -1
 			self.humans_R.append(self.humans_I.pop(i))
 
-		for i in died_indexes:
+		for i in sorted(died_indexes, reverse=True):
 			self.humans_I[i].state = 'D'
 			self.humans_D.append(self.humans_I.pop(i))
 			self.death_toll += 1
@@ -269,7 +337,7 @@ def build_world(args):
 
 
 	# Adding a quarantine community
-	Communities.append(Community(list(), 10, [[0,0],[0,0]], 0))
+	Quarantine = Community(list(), 10, [[-10,-10],[0,0]], 0)
 
 	# All communities have equal number of people
 	if comm_types == 'uniform':
@@ -278,7 +346,7 @@ def build_world(args):
 		for i in range(int(len(People)/comm_density)):
 			coords = np.array([[i*length, i*length], [(i+1)*length, (i+1)*length]])
 			Communities.append(Community(People[i*comm_density : (i+1)*comm_density], length, coords, spd))
-		return World(Communities, travel)
+		return World(Communities, travel, Quarantine)
 	elif comm_types == 'real':
 		# A simple way to generate communities
 		people_copy = np.array(People)  # create a copy of people list
@@ -298,4 +366,4 @@ def build_world(args):
 		Communities.append(Community(people_copy.tolist(), length, coords, spd))
 
 		rd.shuffle(Communities)
-		return World(Communities, travel)
+		return World(Communities, travel, Quarantine)
