@@ -1,4 +1,4 @@
-
+import matplotlib.pyplot as plt
 
 class Infection():
 	def __init__(self, world, inf_init, comm_seed, inf_rad, inf_prob, inf_incub, sym_prob, inf_time):
@@ -15,7 +15,7 @@ class Infection():
 	def start_infection(self):
 		self.world.start(self.inf_init, self.comm_seed)
 
-	# Proceed with a daya
+	# Returns world stats after one day passed
 	def one_day(self):
 		self.world.update_world(self.inf_rad, self.inf_prob, self.inf_time, self.inf_incub, self.sym_prob)
 		stats = self.world.stats()
@@ -45,7 +45,39 @@ def infect_world(args, world):
 	print(infection.world.stats())
 	infection.start_infection()
 
-	for _ in range(sim_time):
-		print(infection.one_day())
+	S_in_world = []
+	I_in_world = []
+	R_in_world = []
 
+	# Get stats for each day of simulation
+	for _ in range(sim_time):
+		all_stats = infection.one_day()
+		print(all_stats)
+
+		s_total = 0
+		i_total = 0
+		r_total = 0
+		# Get total numbers for each status group
+		for comm_stat in all_stats:
+			s_total += comm_stat[0]
+			i_total += comm_stat[1]
+			r_total += comm_stat[2]
+
+		S_in_world.append(s_total)
+		I_in_world.append(i_total)
+		R_in_world.append(r_total)
+
+	# Show infection animation
 	infection.graph()
+
+	# Show SIR plot of the infection
+	fig = plt.figure(figsize=(5, 5))
+	x_title = "Days"
+	plt.xlabel(x_title)
+	y_title = "Count"
+	plt.ylabel(y_title)
+	plt.plot(range(sim_time), S_in_world, color='b', label='Susceptible')
+	plt.plot(range(sim_time), I_in_world, color='r', label='Infected')
+	plt.plot(range(sim_time), R_in_world, color='g', label='Recovered')
+	plt.legend()
+	plt.show()
