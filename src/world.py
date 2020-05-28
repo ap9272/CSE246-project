@@ -114,11 +114,14 @@ class World():
 			comm_idx = np.random.randint(low=0, high=len(self.communities), size=2)
 			
 			status = ''
-			if len(self.communities[comm_idx[0]].humans_I) == 0 and len(self.communities[comm_idx[0]].humans_S) > 0: # only S persons
+			if len(self.communities[comm_idx[0]].humans_I) == 0 and \
+					len(self.communities[comm_idx[0]].humans_S) > 0: # only S persons
 				status = 'S'
-			elif len(self.communities[comm_idx[0]].humans_I) > 0 and len(self.communities[comm_idx[0]].humans_S) == 0: # only I persons
+			elif len(self.communities[comm_idx[0]].humans_I) > 0 and \
+					len(self.communities[comm_idx[0]].humans_S) == 0: # only I persons
 				status = 'I'
-			elif len(self.communities[comm_idx[0]].humans_I) == 0 and len(self.communities[comm_idx[0]].humans_S) == 0: # no viable person to transfer
+			elif len(self.communities[comm_idx[0]].humans_I) == 0 and \
+					len(self.communities[comm_idx[0]].humans_S) == 0: # no viable person to transfer
 				return
 			else: # Could be either S or I
 				if np.random.uniform(0, 1) < 0.5 == True: # choose between an S or I person
@@ -192,7 +195,11 @@ class Community():
 			for i in h_idx:
 				self.humans_S[i].state = 'I'
 				self.humans_S[i].infected_time = 0
-				self.humans_I.append(self.humans_S.pop(i))
+
+			for h in self.humans_S:
+				if h.state == 'I':
+					self.humans_I.append(h)
+					self.humans_S.remove(h)
 
 	# goes through one day of the community
 	def one_day(self, inf_dist, inf_prob, inf_time, incub_time, sympt_prob):
