@@ -185,6 +185,8 @@ class Community():
 		return [len(self.humans_S), len(self.humans_I), len(self.humans_R), len(self.humans_D)]
 
 
+
+
 	# start the infection in the community
 	def infect(self, inf_init):
 		
