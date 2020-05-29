@@ -41,8 +41,9 @@ class World():
 				coords = co
 				status = s
 			else:
-				coords = np.append(coords, co, axis = 1)
-				status = np.append(status, s, axis = 1)
+				if co.shape[0] != 0:
+					coords = np.append(coords, co, axis = 1)
+					status = np.append(status, s, axis = 1)
 
 			quarantine_indices = []
 			for index in range(len(c.humans_I)):
@@ -103,6 +104,12 @@ class World():
 		rect = patches.Rectangle(self.quarantine.coords[0],self.quarantine.length,self.quarantine.length,linewidth=2,edgecolor='red',facecolor='none')
 		ax.add_patch(rect)
 
+		S_human = patches.Patch(color='blue', label='Susceptible')
+		I_human = patches.Patch(color='green', label='Infected')
+		SYM_human = patches.Patch(color='cyan', label='Symptomatic')
+		ASYM_human = patches.Patch(color='pink', label='Asymptomatic')
+		R_human = patches.Patch(color='red', label='Recovered')
+		plt.legend(handles=[S_human, I_human, SYM_human, ASYM_human, R_human])
 		ani = animation.ArtistAnimation(fig, ims, interval=20, blit=True,repeat_delay=1000)
 		plt.show()
 
@@ -228,15 +235,20 @@ class Community():
 
 		for h in self.humans_S:
 			coords.append(h.location)
-			status.append(0)
+			status.append('blue')
 
 		for h in self.humans_I:
 			coords.append(h.location)
-			status.append(1)
+			if h.state == 'SYM':
+				status.append('cyan')
+			elif h.state == 'ASYM':
+				status.append('pink')
+			else:
+				status.append('green')
 
 		for h in self.humans_R:
 			coords.append(h.location)
-			status.append(2)
+			status.append('red')
 
 		return coords, status
 
