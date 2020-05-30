@@ -17,6 +17,7 @@ class World():
 		self.communities = communities
 		self.travel = travel
 		self.quarantine = quarantine
+		self.self_quarantine = self_quarantine
 
 	def __str__(self):
 		out = "Communities : ["
@@ -34,6 +35,24 @@ class World():
 	def update_world(self, inf_dist, inf_prob, inf_time, incub_time, sympt_prob):
 		coords = []
 		status = []
+
+# 		Pass a day for self quarantine they will get and infected and also show symtoms
+		self.self_quarantine.humans_progress()
+
+		# Move the infected humans from self quarantine to quarantine
+		infected_indices = []
+		for i in range(len(self.self_quarantine.humans_I)):
+			if self.self_quarantine.humans_I[i].state == 'SYM':
+				infected_indices.append(i)
+
+		for i in infected_indices:
+			self.quarantine.humans_I.append(self.self_quarantine.humans_I.pop(i))  #Adding symptomatic patients to quarantine community
+			self.quarantine.set_human('I', len(self.quarantine.humans_I)-1)
+
+
+# 		Code for adding the people who came in contact of the infected person(in self quarantine) to self quarantine to be added
+
+
 		for c in self.communities:
 			co, s = c.one_day(inf_dist, inf_prob, inf_time, incub_time, sympt_prob)
 
@@ -51,31 +70,59 @@ class World():
 					quarantine_indices.append(index)
 
 			for i in sorted(quarantine_indices, reverse=True):
+
 				self.quarantine.humans_I.append(c.humans_I.pop(i))  #Adding symptomatic patients to quarantine community
 				self.quarantine.set_human('I', len(self.quarantine.humans_I)-1)
+
+
+				# Code for adding the people who came in contact of the infected person to self quarantine to be added
+
+
 
 		# inter community travel
 		self.community_travel()
 
+# 		Commented code for traveling of people in quarantine
+
 		# Plot the quarantine community
 		# Only move them once per day
-		self.quarantine.move_humans()
-		co, s = self.quarantine.positions()
-		if (co != []):
-			co = np.expand_dims(co, axis=0)
-			s = np.expand_dims(s, axis=0)
-			q_co = np.copy(co)
-			q_s = np.copy(s)
-			for i in range(1, coords.shape[0]):
-				q_co = np.append(q_co, co, axis = 0)
-				q_s = np.append(q_s, s, axis = 0)
+		# self.quarantine.move_humans()
+		# co, s = self.quarantine.positions()
+		# if (co != []):
+		# 	co = np.expand_dims(co, axis=0)
+		# 	s = np.expand_dims(s, axis=0)
+		# 	q_co = np.copy(co)
+		# 	q_s = np.copy(s)
+		# 	for i in range(1, coords.shape[0]):
+		# 		q_co = np.append(q_co, co, axis = 0)
+		# 		q_s = np.append(q_s, s, axis = 0)
 
-			coords = np.append(coords, q_co, axis=1)
-			status = np.append(status, q_s, axis=1)
+		# 	coords = np.append(coords, q_co, axis=1)
+		# 	status = np.append(status, q_s, axis=1)
 
-		for i in range(coords.shape[0]):
-			im=[ax.scatter(coords[i,:,0] ,coords[i,:,1] ,c=status[i,:], marker='.')]
-			ims.append(im)
+		# for i in range(coords.shape[0]):
+		# 	im=[ax.scatter(coords[i,:,0] ,coords[i,:,1] ,c=status[i,:], marker='.')]
+		# 	ims.append(im)
+
+		# # Plot the self quarantine community
+		# # Only move them once per day
+		# self.self_quarantine.move_humans()
+		# co, s = self.self_quarantine.positions()
+		# if (co != []):
+		# 	co = np.expand_dims(co, axis=0)
+		# 	s = np.expand_dims(s, axis=0)
+		# 	q_co = np.copy(co)
+		# 	q_s = np.copy(s)
+		# 	for i in range(1, coords.shape[0]):
+		# 		q_co = np.append(q_co, co, axis = 0)
+		# 		q_s = np.append(q_s, s, axis = 0)
+
+		# 	coords = np.append(coords, q_co, axis=1)
+		# 	status = np.append(status, q_s, axis=1)
+
+		# for i in range(coords.shape[0]):
+		# 	im=[ax.scatter(coords[i,:,0] ,coords[i,:,1] ,c=status[i,:], marker='.')]
+		# 	ims.append(im)
 
 
 	# Start the world, intialize human locations and infect some humans
@@ -102,6 +149,8 @@ class World():
 			rect = patches.Rectangle(c.coords[0],c.length,c.length,linewidth=2,edgecolor='black',facecolor='none')
 			ax.add_patch(rect)
 		rect = patches.Rectangle(self.quarantine.coords[0],self.quarantine.length,self.quarantine.length,linewidth=2,edgecolor='red',facecolor='none')
+		ax.add_patch(rect)
+		rect = patches.Rectangle(self.self_quarantine.coords[0],self.self_quarantine.length,self.self_quarantine.length,linewidth=2,edgecolor='pink',facecolor='none')
 		ax.add_patch(rect)
 
 		S_human = patches.Patch(color='blue', label='Susceptible')
@@ -217,6 +266,7 @@ class Community():
 		# humans take multiple steps per day
 		for _ in range(self.steps_per_day):
 			self.move_humans()
+			self.track_humans(inf_dist, incub_time)
 			self.infection_spread(inf_dist, inf_prob)
 			c,s = self.positions()
 			coords.append(c)
@@ -266,6 +316,31 @@ class Community():
 			self.humans_I[idx].set_location([c + self.length/2 for c in self.coords[0]])
 		elif list_type == 'R':
 			self.humans_R[idx].set_location([c + self.length/2 for c in self.coords[0]])
+
+
+
+# Code to add the person who came in contact to the person's contact list
+	def track_humans(self, inf_dist, incub_time):
+		# Adding people to the contact list if they came nearby.
+
+		all_humans = []
+		for i in range(len(self.humans_S)):
+			all_huamns.append(self.humans_S[i])
+		for i in range(len(self.humans_I)):
+			all_huamns.append(self.humans_I[i])
+
+
+		for i in range(len(all_humans)):
+			contact_i = []
+			for j in range(len(all_humans)):
+				if i!=j and all_humans[i].distance(all_humans[j].location) < inf_dist:
+					contact_i.append(all_humans[j])		#Adding the humans instead of hash		
+
+			if len(all_humans[i].contacts) >= incub_time:
+				all_humans[i].contacts.pop(0)
+
+			all_humans[i].append(contact_i)
+
 
 	# spreading infection on each step
 	# assumption: if there are multiple people in the same radius and one of them is infected
@@ -380,6 +455,9 @@ def build_world(args):
 	# Adding a quarantine community
 	Quarantine = Community(list(), 10, [[-15,0],[-5,10]], 0)
 
+	# Adding a self quarantine community to place the people who were in contact with infected people (found via contact tracing)
+	SelfQuarantine = Community(list(), 10, [[-15,15],[-5,25]], 0)
+
 	comm_no_length = int((comm_count+1)/2)
 	comm_no_height = int(comm_count/2)
 
@@ -399,7 +477,7 @@ def build_world(args):
 				l = l+1
 
 			Communities.append(Community(People[i*comm_density : (i+1)*comm_density], length, coords, spd))
-		return World(Communities, travel, Quarantine)
+		return World(Communities, travel, Quarantine, SelfQuarantine)
 	elif comm_types == 'real':
 		# A simple way to generate communities
 		people_copy = np.array(People)  # create a copy of people list
@@ -429,4 +507,4 @@ def build_world(args):
 		Communities.append(Community(people_copy.tolist(), length, coords, spd))
 
 		rd.shuffle(Communities)
-		return World(Communities, travel, Quarantine)
+		return World(Communities, travel, Quarantine, SelfQuarantine)
