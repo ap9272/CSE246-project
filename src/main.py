@@ -8,15 +8,15 @@ parser = argparse.ArgumentParser()
 parser.add_argument("output_path", help='location where the output is stored')
 parser.add_argument("--param_file", "-file", type=str)
 
-parser.add_argument("--sim_time", "-time", type=int, default=20)
+parser.add_argument("--sim_time", "-time", type=int, default=100)
 
-parser.add_argument("--total_population", "-pop", type=int, default=100)
+parser.add_argument("--total_population", "-pop", type=int, default=400)
 parser.add_argument("--gender_ratio", "-gr", type=float, default=0.5)
 parser.add_argument("--age_dist", "-age", type=str, default='normal', choices=['normal', 'uniform'])
 parser.add_argument("--max_age", "-max_age", type=int, default=100)
 
 
-parser.add_argument("--community_count", "-coms", type=int, default=3)
+parser.add_argument("--community_count", "-coms", type=int, default=4)
 parser.add_argument("--community_types", "-comtypes", type=str, default='uniform', choices=['uniform', 'real'])
 parser.add_argument("--community_box_length", "-bl", type=int, default=100)
 parser.add_argument("--community_travel", "-travel", type=float, default=1)
