@@ -13,7 +13,7 @@ ims=[]
 
 # class for the whole world
 class World():
-	def __init__(self, communities, travel, quarantine):
+	def __init__(self, communities, travel, quarantine, self_quarantine):
 		self.communities = communities
 		self.travel = travel
 		self.quarantine = quarantine
@@ -37,7 +37,7 @@ class World():
 		status = []
 
 # 		Pass a day for self quarantine they will get and infected and also show symtoms
-		self.self_quarantine.humans_progress()
+		self.self_quarantine.humans_progress(inf_time, incub_time, sympt_prob)
 
 		# Move the infected humans from self quarantine to quarantine
 		infected_indices = []
@@ -325,9 +325,9 @@ class Community():
 
 		all_humans = []
 		for i in range(len(self.humans_S)):
-			all_huamns.append(self.humans_S[i])
+			all_humans.append(self.humans_S[i])
 		for i in range(len(self.humans_I)):
-			all_huamns.append(self.humans_I[i])
+			all_humans.append(self.humans_I[i])
 
 
 		for i in range(len(all_humans)):
@@ -339,7 +339,7 @@ class Community():
 			if len(all_humans[i].contacts) >= incub_time:
 				all_humans[i].contacts.pop(0)
 
-			all_humans[i].append(contact_i)
+			all_humans[i].contacts.append(contact_i)
 
 
 	# spreading infection on each step
