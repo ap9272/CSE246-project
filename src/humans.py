@@ -9,13 +9,19 @@ def get_truncated_normal(mean=0, sd=1, low=0, upp=10):
 # class for human
 class Human():
 	# TODO: add other parameters of a human like location
-	def __init__(self, age, gender):
+	def __init__(self, age, gender, human_hash, incub_time, app_install):
 		self.Age = age
 		self.Gender = gender
 		self.location = np.array([0.0,0.0])
 		self.state = 'S'  # SIRD model: (S)usceptible, {(I)nfected, (SYM)ptomatic, (ASYM)ptomatic} , (R)ecovered, (D)ead
 		self.infected_time = -1  # time steps since infected
 		self.incubation_time = -1
+
+		self.app_install = app_install
+		self.h_id = human_hash
+		self.contacted_humans = [set()]
+		self.contacted_buff = incub_time
+
 
 	def __str__(self):
 		return "(" + str(self.Age) + ", " + self.Gender + ") "
@@ -40,6 +46,21 @@ class Human():
 
 		self.location = self.location + direction
 
+	def add_contact(self, h_idx):
+		if self.app_install == False:
+			return
+		self.contacted_humans[-1].add(h_idx)
+
+	def update_contact_day(self):
+		if self.app_install == False:
+			return
+		self.contacted_humans.append(set())
+		if len(self.contacted_humans) >= self.contacted_buff:
+			self.contacted_humans.pop(0)
+
+	def upload_contacts(self):
+		return self.contacted_humans
+
 
 
 def create_humans(args):
@@ -47,6 +68,8 @@ def create_humans(args):
 	gender_ratio = args.gender_ratio
 	age_dist_func = args.age_dist
 	max_age = args.max_age
+	incub_time = args.infection_incub
+	app_install = args.app_install_prob
 
 	Ages = []
 	# assumes normal distribution with values choden from the internet
@@ -64,11 +87,14 @@ def create_humans(args):
 	# Get genders for the humans
 	Genders = np.random.uniform(size=total_pop) > gender_ratio
 
+	# Get the humans who install the app
+	Apps = np.random.uniform(size=total_pop) < app_install
+
 	Population = []
 	for i in range(Ages.shape[0]):
 		if Genders[i] == True:
-			Population.append(Human(Ages[i],'Male'))
+			Population.append(Human(Ages[i],'Male', i, incub_time, Apps[i]))
 		else:
-			Population.append(Human(Ages[i],'Female'))
+			Population.append(Human(Ages[i],'Female', i, incub_time, Apps[i]))
 
 	return Population

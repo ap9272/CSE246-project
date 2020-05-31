@@ -32,6 +32,7 @@ parser.add_argument("--symptom_prob", "-sprob", type=float, default=0.8)
 parser.add_argument("--infection_time", "-itime", type=int, default=30)
 
 
+parser.add_argument("--app_install_prob", "-install", type=float, default=1)
 
 
 args = parser.parse_args()
