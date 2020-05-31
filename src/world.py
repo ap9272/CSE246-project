@@ -73,7 +73,7 @@ class World():
 						if found == True:
 							break
 
-		for i in sorted(infected_indices, reverse=True):
+		# for i in sorted(infected_indices, reverse=True):
 			self.quarantine.humans_I.append(self.self_quarantine.humans_I.pop(ii))  
 			self.quarantine.set_human('I', len(self.quarantine.humans_I)-1)
 
