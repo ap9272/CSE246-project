@@ -46,9 +46,9 @@ class World():
 				infected_indices.append(i)
 
 # 		Code for adding the people who came in contact of the infected person(in self quarantine) to self quarantine to be added
-		for i in sorted(infected_indices, reverse=True):
+		for ii in sorted(infected_indices, reverse=True):
 
-			for contact_list in self.self_quarantine.humans_I[i].contacts:	# 1 day's contact list
+			for contact_list in self.self_quarantine.humans_I[ii].contacts:	# 1 day's contact list
 				for contact in contact_list:		# Each person in contact
 					
 					# contact[0] = hash_id
@@ -61,20 +61,20 @@ class World():
 								if c.humans_S[i].hash_id == contact[0] and c.humans_S[i].state != 'SYM':
 									self.self_quarantine.humans_S.append(c.humans_S.pop(i))
 									found = True
-									print('Person found 1')
+									# print('Person found 1')
 									break
 							if found == False:
 								for i in range(len(c.humans_I)):	#Searching contacted person in Infected
 									if c.humans_I[i].hash_id == contact[0] and c.humans_I[i].state != 'SYM':
 										self.self_quarantine.humans_I.append(c.humans_I.pop(i))
 										found = True
-										print('Person found 2')
+										# print('Person found 2')
 										break
 						if found == True:
 							break
 
 		for i in sorted(infected_indices, reverse=True):
-			self.quarantine.humans_I.append(self.self_quarantine.humans_I.pop(i))  
+			self.quarantine.humans_I.append(self.self_quarantine.humans_I.pop(ii))  
 			self.quarantine.set_human('I', len(self.quarantine.humans_I)-1)
 
 
@@ -96,9 +96,9 @@ class World():
 
 
 	# 		Code for adding the people who came in contact of the infected person(in self quarantine) to self quarantine to be added
-			for i in sorted(quarantine_indices, reverse=True):
+			for qi in sorted(quarantine_indices, reverse=True):
 
-				for contact_list in c.humans_I[i].contacts:	# 1 day's contact list
+				for contact_list in c.humans_I[qi].contacts:	# 1 day's contact list
 					for contact in contact_list:		# Each person in contact
 						
 						# contact[0] = hash_id
@@ -112,7 +112,7 @@ class World():
 										if c.humans_S[i].state != 'SYM':
 											self.self_quarantine.humans_S.append(c.humans_S.pop(i))
 											found = True
-											print('Person found 3')
+											# print('Person found 3')
 											break
 								if found == False:
 									for i in range(len(c.humans_I)):	#Searching contacted person in Infected
@@ -120,7 +120,7 @@ class World():
 											if c.humans_I[i].state != 'SYM':
 												self.self_quarantine.humans_I.append(c.humans_I.pop(i))
 												found = True
-												print('Person found 4 :: ', c.id)
+												# print('Person found 4 :: ', c.id)
 												break
 							if found == True:
 								break
@@ -128,12 +128,12 @@ class World():
 
 			# for i in sorted(quarantine_indices, reverse=True):
 
-				self.quarantine.humans_I.append(c.humans_I.pop(i))  #Adding symptomatic patients to quarantine community
+				self.quarantine.humans_I.append(c.humans_I.pop(qi))  #Adding symptomatic patients to quarantine community
 				self.quarantine.set_human('I', len(self.quarantine.humans_I)-1)
 
 
-		if len(self.self_quarantine.humans_S) > 0 or len(self.self_quarantine.humans_I):
-			print('Self Quarantine Stats:: S: ', len(self.self_quarantine.humans_S), ' :: I: ', len(self.self_quarantine.humans_I))
+		# if len(self.self_quarantine.humans_S) > 0 or len(self.self_quarantine.humans_I):
+		# 	print('Self Quarantine Stats:: S: ', len(self.self_quarantine.humans_S), ' :: I: ', len(self.self_quarantine.humans_I))
 
 
 		# inter community travel
@@ -195,10 +195,15 @@ class World():
 
 	# Returns how many humans in which state
 	def stats(self):
-		SIRs = []
+		SIRs_Coms, SIRs_Quarantine = [], []
+		
 		for c in self.communities:
-			SIRs.append(c.stats())
-		return SIRs
+			SIRs_Coms.append(c.stats())
+
+		SIRs_Quarantine.append(self.quarantine.stats())
+		SIRs_Quarantine.append(self.self_quarantine.stats())
+
+		return SIRs_Coms, SIRs_Quarantine
 
 	# Outputs the humans graph
 	def print_graph(self):

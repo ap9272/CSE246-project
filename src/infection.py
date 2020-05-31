@@ -18,9 +18,9 @@ class Infection():
 	# Returns world stats after one day passed
 	def one_day(self):
 		self.world.update_world(self.inf_rad, self.inf_prob, self.inf_time, self.inf_incub, self.sym_prob)
-		stats = self.world.stats()
+		stats_coms, stats_quarantine = self.world.stats()
 
-		return stats
+		return stats_coms, stats_quarantine
 
 	# Get the graph for humans
 	def graph(self):
@@ -42,7 +42,10 @@ def infect_world(args, world):
 
 	infection = Infection(world, inf_init, comm_seed, inf_rad, inf_prob, inf_incub, sym_prob, inf_time)
 
-	print(infection.world.stats())
+	initial_stat_coms, initial_stat_quarantine = infection.world.stats()
+	print('Coms: ',initial_stat_coms, ' :: Quarantine: ',initial_stat_quarantine)
+	# print('Quarantine: ',initial_stat_quarantine)
+
 	infection.start_infection()
 
 	S_in_world = []
@@ -50,15 +53,17 @@ def infect_world(args, world):
 	R_in_world = []
 
 	# Get stats for each day of simulation
-	for _ in range(sim_time):
-		all_stats = infection.one_day()
-		print(all_stats)
+	for day in range(sim_time):
+		stat_coms, stat_quarantine = infection.one_day()
+
+		print('Day:', day, ' Coms: ',stat_coms, ' :: Quarantine: ',stat_quarantine)
+		# print(Quarantine: ',stat_quarantine)
 
 		s_total = 0
 		i_total = 0
 		r_total = 0
 		# Get total numbers for each status group
-		for comm_stat in all_stats:
+		for comm_stat in stat_coms:
 			s_total += comm_stat[0]
 			i_total += comm_stat[1]
 			r_total += comm_stat[2]
