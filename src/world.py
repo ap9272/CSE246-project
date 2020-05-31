@@ -78,8 +78,8 @@ class World():
 			self.quarantine.set_human('I', len(self.quarantine.humans_I)-1)
 
 
-		for c in self.communities:
-			co, s = c.one_day(inf_dist, inf_prob, inf_time, incub_time, sympt_prob)
+		for comm in self.communities:
+			co, s = comm.one_day(inf_dist, inf_prob, inf_time, incub_time, sympt_prob)
 
 			if coords == []:
 				coords = co
@@ -90,15 +90,15 @@ class World():
 					status = np.append(status, s, axis = 1)
 
 			quarantine_indices = []
-			for index in range(len(c.humans_I)):
-				if c.humans_I[index].state == 'SYM':
+			for index in range(len(comm.humans_I)):
+				if comm.humans_I[index].state == 'SYM':
 					quarantine_indices.append(index)
 
 
 	# 		Code for adding the people who came in contact of the infected person(in self quarantine) to self quarantine to be added
 			for qi in sorted(quarantine_indices, reverse=True):
 
-				for contact_list in c.humans_I[qi].contacts:	# 1 day's contact list
+				for contact_list in comm.humans_I[qi].contacts:	# 1 day's contact list
 					for contact in contact_list:		# Each person in contact
 						
 						# contact[0] = hash_id
@@ -128,7 +128,7 @@ class World():
 
 			# for i in sorted(quarantine_indices, reverse=True):
 
-				self.quarantine.humans_I.append(c.humans_I.pop(qi))  #Adding symptomatic patients to quarantine community
+				self.quarantine.humans_I.append(comm.humans_I.pop(qi))  #Adding symptomatic patients to quarantine community
 				self.quarantine.set_human('I', len(self.quarantine.humans_I)-1)
 
 
