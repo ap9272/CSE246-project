@@ -58,21 +58,20 @@ class World():
 					for c in self.communities:
 						if c.id == contact[1]:
 							for i in range(len(c.humans_S)):	#Searching contacted person in susceptibles
-								if c.humans_S[i].hash_id == contact[0]:
+								if c.humans_S[i].hash_id == contact[0] and c.humans_S[i].state != 'SYM':
 									self.self_quarantine.humans_S.append(c.humans_S.pop(i))
 									found = True
 									print('Person found 1')
 									break
 							if found == False:
 								for i in range(len(c.humans_I)):	#Searching contacted person in Infected
-									if c.humans_I[i].hash_id == contact[0]:
+									if c.humans_I[i].hash_id == contact[0] and c.humans_I[i].state != 'SYM':
 										self.self_quarantine.humans_I.append(c.humans_I.pop(i))
 										found = True
 										print('Person found 2')
 										break
 						if found == True:
 							break
-
 
 		for i in sorted(infected_indices, reverse=True):
 			self.quarantine.humans_I.append(self.self_quarantine.humans_I.pop(i))  
@@ -110,27 +109,28 @@ class World():
 							if c.id == contact[1]:
 								for i in range(len(c.humans_S)):	#Searching contacted person in susceptibles
 									if c.humans_S[i].hash_id == contact[0]:
-										self.self_quarantine.humans_S.append(c.humans_S.pop(i))
-										found = True
-										print('Person found 3')
-										break
+										if c.humans_S[i].state != 'SYM':
+											self.self_quarantine.humans_S.append(c.humans_S.pop(i))
+											found = True
+											print('Person found 3')
+											break
 								if found == False:
 									for i in range(len(c.humans_I)):	#Searching contacted person in Infected
 										if c.humans_I[i].hash_id == contact[0]:
-											self.self_quarantine.humans_I.append(c.humans_I.pop(i))
-											found = True
-											print('Person found 4')
-											break
+											if c.humans_I[i].state != 'SYM':
+												self.self_quarantine.humans_I.append(c.humans_I.pop(i))
+												found = True
+												print('Person found 4 :: ', c.id)
+												break
 							if found == True:
 								break
 
-			for i in sorted(quarantine_indices, reverse=True):
+
+			# for i in sorted(quarantine_indices, reverse=True):
 
 				self.quarantine.humans_I.append(c.humans_I.pop(i))  #Adding symptomatic patients to quarantine community
 				self.quarantine.set_human('I', len(self.quarantine.humans_I)-1)
 
-
-				# Code for adding the people who came in contact of the infected person to self quarantine to be added
 
 		if len(self.self_quarantine.humans_S) > 0 or len(self.self_quarantine.humans_I):
 			print('Self Quarantine Stats:: S: ', len(self.self_quarantine.humans_S), ' :: I: ', len(self.self_quarantine.humans_I))
