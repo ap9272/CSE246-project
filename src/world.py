@@ -39,18 +39,44 @@ class World():
 # 		Pass a day for self quarantine they will get and infected and also show symtoms
 		self.self_quarantine.humans_progress(inf_time, incub_time, sympt_prob)
 
-		# Move the infected humans from self quarantine to quarantine
+		#Adding symptomatic patients from self quarantine to quarantine community
 		infected_indices = []
 		for i in range(len(self.self_quarantine.humans_I)):
 			if self.self_quarantine.humans_I[i].state == 'SYM':
 				infected_indices.append(i)
 
-		for i in infected_indices:
-			self.quarantine.humans_I.append(self.self_quarantine.humans_I.pop(i))  #Adding symptomatic patients to quarantine community
-			self.quarantine.set_human('I', len(self.quarantine.humans_I)-1)
-
-
 # 		Code for adding the people who came in contact of the infected person(in self quarantine) to self quarantine to be added
+		for i in sorted(infected_indices, reverse=True):
+
+			for contact_list in self.self_quarantine.humans_I[i].contacts:	# 1 day's contact list
+				for contact in contact_list:		# Each person in contact
+					
+					# contact[0] = hash_id
+					# contact[1] = community_id
+
+					found = False
+					for c in self.communities:
+						if c.id == contact[1]:
+							for i in range(len(c.humans_S)):	#Searching contacted person in susceptibles
+								if c.humans_S[i].hash_id == contact[0]:
+									self.self_quarantine.humans_S.append(c.humans_S.pop(i))
+									found = True
+									print('Person found 1')
+									break
+							if found == False:
+								for i in range(len(c.humans_I)):	#Searching contacted person in Infected
+									if c.humans_I[i].hash_id == contact[0]:
+										self.self_quarantine.humans_I.append(c.humans_I.pop(i))
+										found = True
+										print('Person found 2')
+										break
+						if found == True:
+							break
+
+
+		for i in sorted(infected_indices, reverse=True):
+			self.quarantine.humans_I.append(self.self_quarantine.humans_I.pop(i))  
+			self.quarantine.set_human('I', len(self.quarantine.humans_I)-1)
 
 
 		for c in self.communities:
@@ -69,6 +95,35 @@ class World():
 				if c.humans_I[index].state == 'SYM':
 					quarantine_indices.append(index)
 
+
+	# 		Code for adding the people who came in contact of the infected person(in self quarantine) to self quarantine to be added
+			for i in sorted(quarantine_indices, reverse=True):
+
+				for contact_list in c.humans_I[i].contacts:	# 1 day's contact list
+					for contact in contact_list:		# Each person in contact
+						
+						# contact[0] = hash_id
+						# contact[1] = community_id
+
+						found = False
+						for c in self.communities:
+							if c.id == contact[1]:
+								for i in range(len(c.humans_S)):	#Searching contacted person in susceptibles
+									if c.humans_S[i].hash_id == contact[0]:
+										self.self_quarantine.humans_S.append(c.humans_S.pop(i))
+										found = True
+										print('Person found 3')
+										break
+								if found == False:
+									for i in range(len(c.humans_I)):	#Searching contacted person in Infected
+										if c.humans_I[i].hash_id == contact[0]:
+											self.self_quarantine.humans_I.append(c.humans_I.pop(i))
+											found = True
+											print('Person found 4')
+											break
+							if found == True:
+								break
+
 			for i in sorted(quarantine_indices, reverse=True):
 
 				self.quarantine.humans_I.append(c.humans_I.pop(i))  #Adding symptomatic patients to quarantine community
@@ -77,6 +132,8 @@ class World():
 
 				# Code for adding the people who came in contact of the infected person to self quarantine to be added
 
+		if len(self.self_quarantine.humans_S) > 0 or len(self.self_quarantine.humans_I):
+			print('Self Quarantine Stats:: S: ', len(self.self_quarantine.humans_S), ' :: I: ', len(self.self_quarantine.humans_I))
 
 
 		# inter community travel
@@ -200,7 +257,8 @@ class World():
 
 # class for one community
 class Community():
-	def __init__(self, humans, length, coords, steps_per_day):
+	def __init__(self, id, humans, length, coords, steps_per_day):
+		self.id = id
 		self.humans_S = humans			# susceptible people
 		self.humans_I = []			# infected people - can have 3 states: I, SYM, or ASYM
 		self.humans_R = []			# recovered people
@@ -240,9 +298,6 @@ class Community():
 	def stats(self):
 		return [len(self.humans_S), len(self.humans_I), len(self.humans_R), len(self.humans_D)]
 
-
-
-
 	# start the infection in the community
 	def infect(self, inf_init):
 		
@@ -267,6 +322,7 @@ class Community():
 		for _ in range(self.steps_per_day):
 			self.move_humans()
 			self.track_humans(inf_dist, incub_time)
+
 			self.infection_spread(inf_dist, inf_prob)
 			c,s = self.positions()
 			coords.append(c)
@@ -334,7 +390,7 @@ class Community():
 			contact_i = []
 			for j in range(len(all_humans)):
 				if i!=j and all_humans[i].distance(all_humans[j].location) < inf_dist:
-					contact_i.append(all_humans[j])		#Adding the humans instead of hash		
+					contact_i.append([all_humans[j].hash_id, self.id])		#Adding the hash_id of human and community id	
 
 			if len(all_humans[i].contacts) >= incub_time:
 				all_humans[i].contacts.pop(0)
@@ -453,10 +509,10 @@ def build_world(args):
 
 
 	# Adding a quarantine community
-	Quarantine = Community(list(), 10, [[-15,0],[-5,10]], 0)
+	Quarantine = Community(0,list(), 10, [[-15,0],[-5,10]], 0)
 
 	# Adding a self quarantine community to place the people who were in contact with infected people (found via contact tracing)
-	SelfQuarantine = Community(list(), 10, [[-15,15],[-5,25]], 0)
+	SelfQuarantine = Community(1,list(), 10, [[-15,15],[-5,25]], 0)
 
 	comm_no_length = int((comm_count+1)/2)
 	comm_no_height = int(comm_count/2)
@@ -476,7 +532,7 @@ def build_world(args):
 			else:
 				l = l+1
 
-			Communities.append(Community(People[i*comm_density : (i+1)*comm_density], length, coords, spd))
+			Communities.append(Community(i+2, People[i*comm_density : (i+1)*comm_density], length, coords, spd))
 		return World(Communities, travel, Quarantine, SelfQuarantine)
 	elif comm_types == 'real':
 		# A simple way to generate communities
@@ -498,7 +554,7 @@ def build_world(args):
 			num_people = np.random.randint(min_people, max_people)
 			people_indices = np.random.randint(0, people_copy.shape[0], num_people)
 			sub_comm = [people_copy[i] for i in people_indices]
-			Communities.append(Community(sub_comm, length, coords, spd))
+			Communities.append(Community(i+2, sub_comm, length, coords, spd))
 			people_copy = np.delete(people_copy, people_indices)
 
 		# Fill in the last community
