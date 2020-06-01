@@ -13,10 +13,11 @@ ims=[]
 
 # class for the whole world
 class World():
-	def __init__(self, communities, travel, quarantine):
+	def __init__(self, communities, travel, quarantine, q_bool):
 		self.communities = communities
 		self.travel = travel
 		self.quarantine = quarantine
+		self.q_bool = q_bool
 		self.humans_notified = 0
 
 	def __str__(self):
@@ -56,9 +57,10 @@ class World():
 				if c.humans_I[index].state == 'SYM':
 					quarantine_indices.append(index)
 
-			for i in sorted(quarantine_indices, reverse=True):
-				self.quarantine.humans_I.append(c.humans_I.pop(i))  #Adding symptomatic patients to quarantine community
-				self.quarantine.set_human('I', len(self.quarantine.humans_I)-1)
+			if self.q_bool:
+				for i in sorted(quarantine_indices, reverse=True):
+					self.quarantine.humans_I.append(c.humans_I.pop(i))  #Adding symptomatic patients to quarantine community
+					self.quarantine.set_human('I', len(self.quarantine.humans_I)-1)
 
 		# inter community travel
 		self.community_travel()
@@ -480,10 +482,12 @@ def build_world(args):
 	length = args.community_box_length
 	travel = args.community_travel
 	spd = args.steps_per_day
+	q_bool = args.quarantine
 
 
 	# Adding a quarantine community
-	Quarantine = Community(list(), 10, [[-15,0],[-5,10]], 0)
+	q_len = length/5
+	Quarantine = Community(list(), q_len, [[-5-q_len,0],[-5,q_len]], 0)
 
 	comm_no_length = int((comm_count+1)/2)
 	comm_no_height = int(comm_count/2)
@@ -504,7 +508,7 @@ def build_world(args):
 				l = l+1
 
 			Communities.append(Community(People[i*comm_density : (i+1)*comm_density], length, coords, spd))
-		return World(Communities, travel, Quarantine)
+		return World(Communities, travel, Quarantine, q_bool)
 	elif comm_types == 'real':
 		# A simple way to generate communities
 		people_copy = np.array(People)  # create a copy of people list
@@ -534,4 +538,4 @@ def build_world(args):
 		Communities.append(Community(people_copy.tolist(), length, coords, spd))
 
 		rd.shuffle(Communities)
-		return World(Communities, travel, Quarantine)
+		return World(Communities, travel, Quarantine, q_bool)
