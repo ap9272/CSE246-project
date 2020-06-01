@@ -35,6 +35,7 @@ def infect_world(args, world):
 	inf_incub = args.infection_incub
 	sym_prob = args.symptom_prob
 	inf_time = args.infection_time
+	file = args.output_path
 
 	sim_time = args.sim_time
 
@@ -79,4 +80,4 @@ def infect_world(args, world):
 	plt.plot(range(sim_time), I_in_world, color='r', label='Infected')
 	plt.plot(range(sim_time), R_in_world, color='g', label='Recovered')
 	plt.legend()
-	plt.show()
+	plt.savefig(file + '/SIR-graph.png')

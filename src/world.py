@@ -13,12 +13,13 @@ ims=[]
 
 # class for the whole world
 class World():
-	def __init__(self, communities, travel, quarantine, q_bool):
+	def __init__(self, communities, travel, quarantine, q_bool, file):
 		self.communities = communities
 		self.travel = travel
 		self.quarantine = quarantine
 		self.q_bool = q_bool
 		self.humans_notified = 0
+		self.file = file
 
 	def __str__(self):
 		out = "Communities : ["
@@ -85,7 +86,7 @@ class World():
 			status = np.append(status, q_s, axis=1)
 
 		for i in range(coords.shape[0]):
-			im=[ax.scatter(coords[i,:,0] ,coords[i,:,1] ,c=status[i,:], marker='o')]
+			im=[ax.scatter(coords[i,:,0] ,coords[i,:,1] ,c=status[i,:], marker='o', linewidths=0)]
 			ims.append(im)
 
 
@@ -149,13 +150,14 @@ class World():
 	# Start the world, intialize human locations and infect some humans
 	def start(self, inf_init, comm_seed):
 
+		# Intialize Human locations
+		for c in self.communities:
+			c.initialize_human_locations()
+
 		# Excluding the quarantine community to start the infection
 		comm_idx = np.random.randint(low=0, high=len(self.communities), size=comm_seed)
 		for c in comm_idx:
 			self.communities[c].infect(int(inf_init/len(comm_idx)))
-		# Intialize Human locations
-		for c in self.communities:
-			c.initialize_human_locations()
 
 	# Returns how many humans in which state
 	def stats(self):
@@ -166,6 +168,9 @@ class World():
 
 	# Outputs the humans graph
 	def print_graph(self):
+		Writer = animation.writers['ffmpeg']
+		writer = Writer(fps=15, metadata=dict(artist='Me'), bitrate=1800)
+
 		print("Total Humans notified : %d" % self.humans_notified)
 		for c in self.communities:
 			rect = patches.Rectangle(c.coords[0],c.length,c.length,linewidth=2,edgecolor='black',facecolor='none')
@@ -178,9 +183,9 @@ class World():
 		SYM_human = patches.Patch(color='cyan', label='Symptomatic')
 		ASYM_human = patches.Patch(color='pink', label='Asymptomatic')
 		R_human = patches.Patch(color='red', label='Recovered')
-		plt.legend(handles=[S_human, I_human, SYM_human, ASYM_human, R_human])
 		ani = animation.ArtistAnimation(fig, ims, interval=20, repeat_delay=1000)
-		plt.show()
+		ax.legend(handles=[S_human, I_human, SYM_human, ASYM_human, R_human], loc='upper right')
+		ani.save(self.file + '/simulation.mp4', writer=writer)
 
 	# Moving a person from one community to the other
 	def community_travel(self):
@@ -483,6 +488,7 @@ def build_world(args):
 	travel = args.community_travel
 	spd = args.steps_per_day
 	q_bool = args.quarantine
+	file = args.output_path
 
 
 	# Adding a quarantine community
@@ -508,7 +514,7 @@ def build_world(args):
 				l = l+1
 
 			Communities.append(Community(People[i*comm_density : (i+1)*comm_density], length, coords, spd))
-		return World(Communities, travel, Quarantine, q_bool)
+		return World(Communities, travel, Quarantine, q_bool, file)
 	elif comm_types == 'real':
 		# A simple way to generate communities
 		people_copy = np.array(People)  # create a copy of people list
@@ -538,4 +544,4 @@ def build_world(args):
 		Communities.append(Community(people_copy.tolist(), length, coords, spd))
 
 		rd.shuffle(Communities)
-		return World(Communities, travel, Quarantine, q_bool)
+		return World(Communities, travel, Quarantine, q_bool, file)

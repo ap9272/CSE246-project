@@ -1,3 +1,4 @@
+import os
 import argparse
 from world import build_world
 from infection import infect_world
@@ -37,6 +38,9 @@ parser.add_argument("--app_install_prob", "-install", type=float, default=1)
 
 
 args = parser.parse_args()
+
+if not os.path.exists(args.output_path):
+    os.makedirs(args.output_path)
 
 world = build_world(args)
 # print(world)
