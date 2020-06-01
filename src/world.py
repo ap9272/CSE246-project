@@ -17,6 +17,7 @@ class World():
 		self.communities = communities
 		self.travel = travel
 		self.quarantine = quarantine
+		self.humans_notified = 0
 
 	def __str__(self):
 		out = "Communities : ["
@@ -97,6 +98,11 @@ class World():
 			for report in ct:
 				for day in report:
 					notify_humans.update(day)
+		if len(notify_humans) == 0:
+			return
+
+		self.humans_notified += len(notify_humans)
+		print('%d humans were notified.' % len(notify_humans))
 		# Now we know all human ids to update we remove them from there communities
 		# Right now this code adds them to our quarantine community. It should be okay because we
 		# do not call the infection spread function on our quarantine community. This can be changed
@@ -158,6 +164,7 @@ class World():
 
 	# Outputs the humans graph
 	def print_graph(self):
+		print("Total Humans notified : %d" % self.humans_notified)
 		for c in self.communities:
 			rect = patches.Rectangle(c.coords[0],c.length,c.length,linewidth=2,edgecolor='black',facecolor='none')
 			ax.add_patch(rect)
