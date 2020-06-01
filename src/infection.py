@@ -18,9 +18,8 @@ class Infection():
 	# Returns world stats after one day passed
 	def one_day(self):
 		self.world.update_world(self.inf_rad, self.inf_prob, self.inf_time, self.inf_incub, self.sym_prob)
-		stats = self.world.stats()
 
-		return stats
+		return self.world.stats()
 
 	# Get the graph for humans
 	def graph(self):
@@ -36,6 +35,7 @@ def infect_world(args, world):
 	inf_incub = args.infection_incub
 	sym_prob = args.symptom_prob
 	inf_time = args.infection_time
+	file = args.output_path
 
 	sim_time = args.sim_time
 
@@ -58,7 +58,7 @@ def infect_world(args, world):
 		i_total = 0
 		r_total = 0
 		# Get total numbers for each status group
-		for comm_stat in all_stats:
+		for comm_stat in all_stats[0]:
 			s_total += comm_stat[0]
 			i_total += comm_stat[1]
 			r_total += comm_stat[2]
@@ -80,4 +80,4 @@ def infect_world(args, world):
 	plt.plot(range(sim_time), I_in_world, color='r', label='Infected')
 	plt.plot(range(sim_time), R_in_world, color='g', label='Recovered')
 	plt.legend()
-	plt.show()
+	plt.savefig(file + '/SIR-graph.png')

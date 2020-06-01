@@ -1,3 +1,4 @@
+import os
 import argparse
 from world import build_world
 from infection import infect_world
@@ -23,18 +24,23 @@ parser.add_argument("--community_travel", "-travel", type=float, default=1)
 parser.add_argument("--steps_per_day", "-spd", type=int, default=10)
 
 
-parser.add_argument("--infection_initial", "-init", type=int, default=1)
-parser.add_argument("--infection_comm_seed", "-comseed", type=int, default=1)
+parser.add_argument("--infection_initial", "-init", type=int, default=4)
+parser.add_argument("--infection_comm_seed", "-comseed", type=int, default=2)
 parser.add_argument("--infection_radius", "-irad", type=float, default=1)
 parser.add_argument("--infection_prob", "-iprob", type=float, default=1)
 parser.add_argument("--infection_incub", "-incub", type=int, default=10)
 parser.add_argument("--symptom_prob", "-sprob", type=float, default=0.8)
 parser.add_argument("--infection_time", "-itime", type=int, default=30)
 
+parser.add_argument("--quarantine", "-q", action='store_true')
 
+parser.add_argument("--app_install_prob", "-install", type=float, default=1)
 
 
 args = parser.parse_args()
+
+if not os.path.exists(args.output_path):
+    os.makedirs(args.output_path)
 
 world = build_world(args)
 # print(world)

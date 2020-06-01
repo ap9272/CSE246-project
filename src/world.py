@@ -13,10 +13,13 @@ ims=[]
 
 # class for the whole world
 class World():
-	def __init__(self, communities, travel, quarantine):
+	def __init__(self, communities, travel, quarantine, q_bool, file):
 		self.communities = communities
 		self.travel = travel
 		self.quarantine = quarantine
+		self.q_bool = q_bool
+		self.humans_notified = 0
+		self.file = file
 
 	def __str__(self):
 		out = "Communities : ["
@@ -34,8 +37,13 @@ class World():
 	def update_world(self, inf_dist, inf_prob, inf_time, incub_time, sympt_prob):
 		coords = []
 		status = []
+		ct_uploads = []
 		for c in self.communities:
-			co, s = c.one_day(inf_dist, inf_prob, inf_time, incub_time, sympt_prob)
+			co, s, contact_tracing_upload = c.one_day(inf_dist, inf_prob, inf_time, incub_time, sympt_prob)
+
+			# If there are contact tracing updates then only add to the list
+			if contact_tracing_upload != []:
+				ct_uploads.append(contact_tracing_upload)
 
 			if coords == []:
 				coords = co
@@ -50,12 +58,16 @@ class World():
 				if c.humans_I[index].state == 'SYM':
 					quarantine_indices.append(index)
 
-			for i in sorted(quarantine_indices, reverse=True):
-				self.quarantine.humans_I.append(c.humans_I.pop(i))  #Adding symptomatic patients to quarantine community
-				self.quarantine.set_human('I', len(self.quarantine.humans_I)-1)
+			if self.q_bool:
+				for i in sorted(quarantine_indices, reverse=True):
+					self.quarantine.humans_I.append(c.humans_I.pop(i))  #Adding symptomatic patients to quarantine community
+					self.quarantine.set_human('I', len(self.quarantine.humans_I)-1)
 
 		# inter community travel
 		self.community_travel()
+
+		# Contact tracing notification
+		self.notify_contact_tracing(ct_uploads)
 
 		# Plot the quarantine community
 		# Only move them once per day
@@ -74,30 +86,92 @@ class World():
 			status = np.append(status, q_s, axis=1)
 
 		for i in range(coords.shape[0]):
-			im=[ax.scatter(coords[i,:,0] ,coords[i,:,1] ,c=status[i,:], marker='.')]
+			im=[ax.scatter(coords[i,:,0] ,coords[i,:,1] ,c=status[i,:], marker='o', linewidths=0)]
 			ims.append(im)
+
+
+	# This function moves humans who have come in contact with infected humans into quarantine
+	def notify_contact_tracing(self, ct_uploads):
+		# Since humans can move between communities this code becomes unoptimal
+		# Part 1, get all human IDs that have to be notified
+		notify_humans = set()
+		# ct_uploads is list of communities, list of uploads per community, list of size incub_time
+		# followed by a set of people in contact
+		for ct in ct_uploads:
+			for report in ct:
+				for day in report:
+					notify_humans.update(day)
+		if len(notify_humans) == 0:
+			return
+
+		self.humans_notified += len(notify_humans)
+		print('%d humans were notified.' % len(notify_humans))
+		# Now we know all human ids to update we remove them from there communities
+		# Right now this code adds them to our quarantine community. It should be okay because we
+		# do not call the infection spread function on our quarantine community. This can be changed
+		# if required
+		for c in self.communities:
+			# Iterate over the different human lists
+			move_humans_idx = []
+			for i in range(len(c.humans_S)):
+				if c.humans_S[i].h_id in notify_humans:
+					move_humans_idx.append(i)
+
+			for idx in sorted(move_humans_idx, reverse=True):
+				# quarantine human
+				self.quarantine.humans_S.append(c.humans_S.pop(idx))
+				self.quarantine.set_human('S', len(self.quarantine.humans_S)-1)
+
+
+			move_humans_idx = []
+			for i in range(len(c.humans_I)):
+				if c.humans_I[i].h_id in notify_humans:
+					move_humans_idx.append(i)
+
+			for idx in sorted(move_humans_idx, reverse=True):
+				# quarantine human
+				self.quarantine.humans_I.append(c.humans_I.pop(idx))
+				self.quarantine.set_human('I', len(self.quarantine.humans_I)-1)
+
+
+			# Not necessary to do but why not
+			move_humans_idx = []
+			for i in range(len(c.humans_R)):
+				if c.humans_R[i].h_id in notify_humans:
+					move_humans_idx.append(i)
+
+			for idx in sorted(move_humans_idx, reverse=True):
+				# quarantine human
+				self.quarantine.humans_R.append(c.humans_R.pop(i))
+				self.quarantine.set_human('R', len(self.quarantine.humans_R)-1)
+
 
 
 	# Start the world, intialize human locations and infect some humans
 	def start(self, inf_init, comm_seed):
 
+		# Intialize Human locations
+		for c in self.communities:
+			c.initialize_human_locations()
+
 		# Excluding the quarantine community to start the infection
 		comm_idx = np.random.randint(low=0, high=len(self.communities), size=comm_seed)
 		for c in comm_idx:
 			self.communities[c].infect(int(inf_init/len(comm_idx)))
-		# Intialize Human locations
-		for c in self.communities:
-			c.initialize_human_locations()
 
 	# Returns how many humans in which state
 	def stats(self):
 		SIRs = []
 		for c in self.communities:
 			SIRs.append(c.stats())
-		return SIRs
+		return SIRs, self.quarantine.stats()
 
 	# Outputs the humans graph
 	def print_graph(self):
+		Writer = animation.writers['ffmpeg']
+		writer = Writer(fps=15, metadata=dict(artist='Me'), bitrate=1800)
+
+		print("Total Humans notified : %d" % self.humans_notified)
 		for c in self.communities:
 			rect = patches.Rectangle(c.coords[0],c.length,c.length,linewidth=2,edgecolor='black',facecolor='none')
 			ax.add_patch(rect)
@@ -109,9 +183,9 @@ class World():
 		SYM_human = patches.Patch(color='cyan', label='Symptomatic')
 		ASYM_human = patches.Patch(color='pink', label='Asymptomatic')
 		R_human = patches.Patch(color='red', label='Recovered')
-		plt.legend(handles=[S_human, I_human, SYM_human, ASYM_human, R_human])
-		ani = animation.ArtistAnimation(fig, ims, interval=20, blit=True,repeat_delay=1000)
-		plt.show()
+		ani = animation.ArtistAnimation(fig, ims, interval=20, repeat_delay=1000)
+		ax.legend(handles=[S_human, I_human, SYM_human, ASYM_human, R_human], loc='upper right')
+		ani.save(self.file + '/simulation.mp4', writer=writer)
 
 	# Moving a person from one community to the other
 	def community_travel(self):
@@ -222,11 +296,11 @@ class Community():
 			coords.append(c)
 			status.append(s)
 		# one day passes for humans (update status)
-		self.humans_progress(inf_time, incub_time, sympt_prob)
+		contact_tracing_upload = self.humans_progress(inf_time, incub_time, sympt_prob)
 
 		coords = np.array(coords)
 		status = np.array(status)
-		return coords,status
+		return coords,status, contact_tracing_upload
 
 	# for graphing of humans
 	def positions(self):
@@ -279,16 +353,36 @@ class Community():
 						indexes.append(i)
 
 		for i in sorted(list(set(indexes)), reverse=True):
-			if (i >= len(self.humans_S)):
-				print(i, len(self.humans_S), indexes)
 			self.humans_S[i].state = 'I'
 			self.humans_S[i].infected_time = 0
 			self.humans_I.append(self.humans_S.pop(i))
+
+
+		# Add all humans that come in contact with other humans
+		# Optimization (not added) - outer loop can be only infected humans since incubation period is required
+		# for checking that the people have come in contact. The apps don't work in this way because
+		# people don't know when they were infected till they start showing symptoms
+		All_humans = self.humans_S + self.humans_I
+		for i in range(len(All_humans)):
+			# If app not installed, not tracked
+			if All_humans[i].app_install == False:
+				continue
+			for j in range(i+1, len(All_humans)):
+				# If app not installed, not tracked
+				if All_humans[j].app_install == False:
+					continue
+
+				if (All_humans[i].distance(All_humans[j].location) < inf_dist):
+					All_humans[i].add_contact(All_humans[j].h_id)
+					All_humans[j].add_contact(All_humans[i].h_id)
 
 	def humans_progress(self, inf_time, incub_time, sympt_prob):
 
 		recovered_indexes = []
 		died_indexes = []
+		# This is similar to the upload humans have to do for BlueTrace when they
+		# become symptomatic
+		contact_tracing_upload = []
 		# Advance the infection for each human
 		for i in range(len(self.humans_I)):
 			self.humans_I[i].infected_time += 1
@@ -306,6 +400,21 @@ class Community():
 				if state == 'D':
 					died_indexes.append(i)
 
+		for h in self.humans_I:
+			# Started showing symptoms and app installed
+			# Assumption - there is a quarantine and symptomatic infected humans
+			# are in only the quarantine community
+			if h.state == 'SYM' and h.app_install == True:
+				contact_tracing_upload.append(h.upload_contacts())
+
+		# update the contact tracing buffer for all humans
+		# Optimization (not added, only works if optimization done in infection_spread) -
+		# only update for humans_I
+		All_humans = self.humans_S + self.humans_I
+		for h in All_humans:
+			h.update_contact_day()
+
+
 		for i in sorted(recovered_indexes, reverse=True):
 			self.humans_I[i].state = 'R'
 			self.humans_I[i].infected_time = -1
@@ -315,6 +424,9 @@ class Community():
 			self.humans_I[i].state = 'D'
 			self.humans_D.append(self.humans_I.pop(i))
 			self.death_toll += 1
+
+		# get all the contact tracing uploads for the day
+		return contact_tracing_upload
 
       
 	def decide_symptoms(self, human_index, sympt_prob):
@@ -375,10 +487,13 @@ def build_world(args):
 	length = args.community_box_length
 	travel = args.community_travel
 	spd = args.steps_per_day
+	q_bool = args.quarantine
+	file = args.output_path
 
 
 	# Adding a quarantine community
-	Quarantine = Community(list(), 10, [[-15,0],[-5,10]], 0)
+	q_len = length/5
+	Quarantine = Community(list(), q_len, [[-5-q_len,0],[-5,q_len]], 0)
 
 	comm_no_length = int((comm_count+1)/2)
 	comm_no_height = int(comm_count/2)
@@ -399,7 +514,7 @@ def build_world(args):
 				l = l+1
 
 			Communities.append(Community(People[i*comm_density : (i+1)*comm_density], length, coords, spd))
-		return World(Communities, travel, Quarantine)
+		return World(Communities, travel, Quarantine, q_bool, file)
 	elif comm_types == 'real':
 		# A simple way to generate communities
 		people_copy = np.array(People)  # create a copy of people list
@@ -429,4 +544,4 @@ def build_world(args):
 		Communities.append(Community(people_copy.tolist(), length, coords, spd))
 
 		rd.shuffle(Communities)
-		return World(Communities, travel, Quarantine)
+		return World(Communities, travel, Quarantine, q_bool, file)
