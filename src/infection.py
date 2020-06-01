@@ -49,10 +49,12 @@ def infect_world(args, world):
 	I_in_world = []
 	R_in_world = []
 
+	logs = ""
 	# Get stats for each day of simulation
 	for _ in range(sim_time):
 		all_stats = infection.one_day()
 		print(all_stats)
+		logs += str(all_stats) + '\n'
 
 		s_total = 0
 		i_total = 0
@@ -67,6 +69,8 @@ def infect_world(args, world):
 		I_in_world.append(i_total)
 		R_in_world.append(r_total)
 
+	logs += "Total Humans notified : " + str(infection.world.humans_notified)
+	open(file + '/logs', 'w').write(logs)
 	# Show infection animation
 	infection.graph()
 
