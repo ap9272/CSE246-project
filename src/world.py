@@ -518,7 +518,6 @@ def build_world(args):
 	elif comm_types == 'real':
 		# A simple way to generate communities
 		people_copy = np.array(People)  # create a copy of people list
-
 		l = 0
 		b = 0
 		for i in range(comm_count - 1):
@@ -533,10 +532,10 @@ def build_world(args):
 			min_people = int(0.25 * people_copy.shape[0])  # min number of people in a community
 			max_people = int(0.75 * people_copy.shape[0])  # max number of people to put in a community
 			num_people = np.random.randint(min_people, max_people)
-			people_indices = np.random.randint(0, people_copy.shape[0], num_people)
+			people_indices = np.random.choice(people_copy.shape[0], size=num_people, replace=False)
 			sub_comm = [people_copy[i] for i in people_indices]
 			Communities.append(Community(sub_comm, length, coords, spd))
-			people_copy = np.delete(people_copy, people_indices)
+			people_copy = np.delete(people_copy, people_indices, axis = 0)
 
 		# Fill in the last community
 		# 10 added for bounding box buffer
