@@ -1,6 +1,6 @@
 # CSE246-project
 
-usage: python3 main.py [-h] [--param_file PARAM_FILE] [--sim_time SIM_TIME]
+usage: python3 src/main.py [-h] [--param_file PARAM_FILE] [--sim_time SIM_TIME]
                [--total_population TOTAL_POPULATION]
                [--gender_ratio GENDER_RATIO] [--age_dist {normal,uniform}]
                [--max_age MAX_AGE] [--community_count COMMUNITY_COUNT]
