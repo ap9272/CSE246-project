@@ -190,7 +190,7 @@ class World():
 	# Moving a person from one community to the other
 	def community_travel(self):
 		# Will travel happen
-		if np.random.uniform(0, 1) < self.travel == True:
+		if np.random.uniform(0, 1) < self.travel:
 			# Source, Destination
 			comm_idx = np.random.randint(low=0, high=len(self.communities), size=2)
 			
@@ -205,7 +205,7 @@ class World():
 					len(self.communities[comm_idx[0]].humans_S) == 0: # no viable person to transfer
 				return
 			else: # Could be either S or I
-				if np.random.uniform(0, 1) < 0.5 == True: # choose between an S or I person
+				if np.random.uniform(0, 1) < 0.5: # choose between an S or I person
 					status = 'S'
 				else:
 					status = 'I'
@@ -298,6 +298,8 @@ class Community():
 		# one day passes for humans (update status)
 		contact_tracing_upload = self.humans_progress(inf_time, incub_time, sympt_prob)
 
+		if (len(coords) != self.steps_per_day):
+			print(coords)
 		coords = np.array(coords)
 		status = np.array(status)
 		return coords,status, contact_tracing_upload
@@ -345,11 +347,14 @@ class Community():
 	# assumption: if there are multiple people in the same radius and one of them is infected
 	# the other people can only be infected by that one person in that time step
 	def infection_spread(self, inf_dist, inf_prob):
+		# print(inf_prob)
 		indexes = []
 		for i in range(len(self.humans_S)):
 			for j in range(len(self.humans_I)):
 				if (self.humans_S[i].distance(self.humans_I[j].location) < inf_dist):
-					if (np.random.uniform(0,1) < inf_prob == True):		# decide whether to infect a person or not
+					c = np.random.uniform(0,1)
+					print(c, c < inf_prob)
+					if (c < inf_prob):		# decide whether to infect a person or not
 						indexes.append(i)
 
 		for i in sorted(list(set(indexes)), reverse=True):
@@ -379,7 +384,7 @@ class Community():
 	def humans_progress(self, inf_time, incub_time, sympt_prob):
 
 		recovered_indexes = []
-		died_indexes = []
+		# died_indexes = []
 		# This is similar to the upload humans have to do for BlueTrace when they
 		# become symptomatic
 		contact_tracing_upload = []
@@ -396,9 +401,9 @@ class Community():
 				state = self.decide_death(i)
 				
 				if state == 'R':	# if patient survives death
-					recovered_indexes.append(i)
+					recovered_indexes.append((i,'R'))
 				if state == 'D':
-					died_indexes.append(i)
+					recovered_indexes.append((i,'D'))
 
 		for h in self.humans_I:
 			# Started showing symptoms and app installed
@@ -415,15 +420,19 @@ class Community():
 			h.update_contact_day()
 
 
-		for i in sorted(recovered_indexes, reverse=True):
-			self.humans_I[i].state = 'R'
+		for i,s in sorted(recovered_indexes, reverse=True):
+			self.humans_I[i].state = s
 			self.humans_I[i].infected_time = -1
-			self.humans_R.append(self.humans_I.pop(i))
+			if s == 'R':
+				self.humans_R.append(self.humans_I.pop(i))
+			else:
+				self.humans_D.append(self.humans_I.pop(i))
+				self.death_toll += 1
 
-		for i in sorted(died_indexes, reverse=True):
-			self.humans_I[i].state = 'D'
-			self.humans_D.append(self.humans_I.pop(i))
-			self.death_toll += 1
+		# for i in sorted(died_indexes, reverse=True):
+		# 	self.humans_I[i].state = 'D'
+		# 	self.humans_D.append(self.humans_I.pop(i))
+		# 	self.death_toll += 1
 
 		# get all the contact tracing uploads for the day
 		return contact_tracing_upload

@@ -70,7 +70,7 @@ def infect_world(args, world):
 		R_in_world.append(r_total)
 
 	logs += "Total Humans notified : " + str(infection.world.humans_notified)
-	open(file + '/logs', 'w').write(logs)
+	open(file + '/logs', 'a').write(logs)
 	# Show infection animation
 	infection.graph()
 

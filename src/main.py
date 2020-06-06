@@ -7,7 +7,7 @@ from infection import infect_world
 parser = argparse.ArgumentParser()
 
 parser.add_argument("output_path", help='location where the output is stored')
-parser.add_argument("--param_file", "-file", type=str)
+parser.add_argument("--param_file", "-file", type=str) # TODO
 
 parser.add_argument("--sim_time", "-time", type=int, default=100)
 
@@ -25,7 +25,7 @@ parser.add_argument("--steps_per_day", "-spd", type=int, default=10)
 
 
 parser.add_argument("--infection_initial", "-init", type=int, default=4)
-parser.add_argument("--infection_comm_seed", "-comseed", type=int, default=2)
+parser.add_argument("--infection_comm_seed", "-comseed", type=int, default=1)
 parser.add_argument("--infection_radius", "-irad", type=float, default=1)
 parser.add_argument("--infection_prob", "-iprob", type=float, default=1)
 parser.add_argument("--infection_incub", "-incub", type=int, default=10)
@@ -41,6 +41,7 @@ args = parser.parse_args()
 
 if not os.path.exists(args.output_path):
     os.makedirs(args.output_path)
+open(args.output_path + '/logs', 'w').write(str(args) + '\n')
 
 world = build_world(args)
 # print(world)
